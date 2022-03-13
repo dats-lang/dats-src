@@ -68,7 +68,7 @@ enum token_t {
   TOK_DOT,
   TOK_DQUOTE, /*  double quote */
   TOK_SQUOTE, /* single qoute */
-  TOK_UNDERSCORE
+  TOK_UNDERSCORE,
 
   TOK_EQUAL,
   TOK_ADD,
@@ -144,14 +144,14 @@ struct pcm16_t {
       size_t filter_line, filter_column;
       size_t pcm16_line, pcm16_column;
       size_t nb_options;
-      synth_option_t *options;
+      filter_option_t *options;
     } FILTER;
     struct {
       char *synth_name, *staff_name;
       size_t staff_line, staff_column;
       size_t synth_line, synth_column;
       size_t nb_options;
-      filter_option_t *options;
+      synth_option_t *options;
     } SYNTH;
   };
   int16_t *pcm;

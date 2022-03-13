@@ -125,10 +125,6 @@ int count_dats_t(void) {
 
 symrec_t *getsym(const dats_t *const t, char const *const id) {
   symrec_t *n;
-  if (!strcmp(id, "main"))
-    for (symrec_t *p = t->sym_table; p != NULL; p = p->next)
-      if (p->type == TOK_MAIN)
-        return p;
   for (symrec_t *p = t->sym_table; p != NULL; p = n) {
     n = p->next;
     if (p->value.staff.identifier == NULL)
@@ -319,7 +315,7 @@ w:
     c = '/';
   }
   switch (c) {
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -470,7 +466,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -760,7 +756,7 @@ w:
     c = '/';
   }
   switch (c) {
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -908,7 +904,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':

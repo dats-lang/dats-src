@@ -149,7 +149,7 @@ staff m3 {
 
 
 }
-master {
+main {
   pcm16 tr1 = synth.sf2(m1)[preset=9];
   pcm16 tr2 = synth.sf2(m2)[preset=10];
   pcm16 tr3 = synth.sin(m3);

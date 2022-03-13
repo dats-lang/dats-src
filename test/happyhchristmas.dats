@@ -341,7 +341,7 @@ staff m3 {
   n 4, c3;
 }
 
-master {
+main {
   pcm16 tr1 = mix((filter.reverb((synth.sin(m1)[
     vibrato_frequency=8, vibrato_magnitude=3]))),
     (mix((synth.square(m2)),(synth.sin(m2)))));

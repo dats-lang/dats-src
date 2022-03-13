@@ -186,12 +186,13 @@ n 3, cb1;
 r 2;
 }
 	
-master {
+main {
 /* multi line **
    ***
    hh */
   /* pcm16 tmp1 = synth.kpa(apple);*/
-   pcm16 track1 = synth.kpa(apple), track1;
-   write("t.wav", track1);
+   pcm16 track1 = synth.kpa(appale), track1;
+   pcm16 kd = filter.lk(synth.kpdqa(sapple));
+   /* write("t.wav", track1); */
 }
 

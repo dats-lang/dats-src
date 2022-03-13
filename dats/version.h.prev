@@ -1,10 +1,10 @@
 /* If you're compiling dats on a potato without `make` or `xxd`,
  * remove the `.prev` of this file. 
  *
- * Below is the previous commit hash of this software.
+ * Below is some dummy commit hash of this software.
  */
 
-#define PREVIOUS_COMMIT 1
+#define DUMMY_COMMIT 1
 unsigned char ____git_refs_heads_parser_0_1_0[] = {
     0x35, 0x37, 0x32, 0x39, 0x32, 0x63, 0x35, 0x61, 0x63, 0x33, 0x37,
     0x66, 0x38, 0x62, 0x64, 0x39, 0x34, 0x34, 0x34, 0x63, 0x66, 0x39,

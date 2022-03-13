@@ -5,6 +5,6 @@ staff foo {
   n 4, c4;
 }
 
-master {
+main {
   write("t.wav", synth.sf2(foo)[preset="Piano"]);
 }

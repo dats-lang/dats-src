@@ -29,7 +29,6 @@ EXTERN void destroy_pcm16_t(pcm16_t *);
 
 EXTERN int line_token_found;
 EXTERN int column_token_found;
-
 EXTERN int local_errors;
 EXTERN int global_errors;
 EXTERN int local_warnings;

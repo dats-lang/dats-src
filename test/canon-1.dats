@@ -90,7 +90,7 @@ staff foo {
   n 8, g3;
 }
 
-master {
+main {
   pcm16 bar = synth.square(foo);
   write("t.wav", bar);
 }

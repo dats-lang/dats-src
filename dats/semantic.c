@@ -62,6 +62,7 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
 }
 
 int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
+  int err = 0;
   if (pcm16_cur == NULL)
     return 0;
 
@@ -94,6 +95,20 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
       if (driver == NULL) {
         SEMANTIC(d, pcm16_cur->SYNTH.synth_line, pcm16_cur->SYNTH.synth_column,
                  "No synth named, '%s'\n", pcm16_cur->SYNTH.synth_name);
+        err = 1;
+      }
+      symrec_t *pcm16 = getsym(d, pcm16_cur->SYNTH.staff_name);
+      if (pcm16 == NULL) {
+        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
+                 "Undefined reference to '%s'\n", pcm16_cur->SYNTH.staff_name);
+        err = 1;
+      }
+      if (err) goto exit;
+      if (pcm16->type != TOK_STAFF) {
+        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
+                 "Incompatible %s to staff\n", token_t_to_str(pcm16->type));
+        REPORT("note: previously declared here:\n");
+        print_scan_line(d->fp, pcm16->line, pcm16->column);
       }
       for (size_t i = 0; i < pcm16_cur->SYNTH.nb_options; i++) {
         for (DSOption *options = driver->options; options->option_name != NULL;
@@ -108,18 +123,6 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
                  "No synth options named, '%s'\n",
                  pcm16_cur->SYNTH.options[i].option_name);
       found : {}
-      }
-      symrec_t *pcm16 = getsym(d, pcm16_cur->SYNTH.staff_name);
-      if (pcm16 == NULL) {
-        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-                 "Undefined reference to %s\n", pcm16_cur->SYNTH.staff_name);
-        goto exit;
-      }
-      if (pcm16->type != TOK_STAFF) {
-        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-                 "Incompatible %s to staff\n", token_t_to_str(pcm16->type));
-        REPORT("note: previously declared here:\n");
-        print_scan_line(d->fp, pcm16->line, pcm16->column);
       }
       //    printf("Synth %s found\n", tok_identifier);
       //    free(tok_identifier);
@@ -136,9 +139,9 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
                  pcm16_cur->FILTER.filter_column, "No filter named, '%s'\n",
                  pcm16_cur->FILTER.filter_name);
       }
-      //    semantic_pcm16_t(d, n, pcm16_cur->FILTER.pcm16_arg);
-      pcm16_cur = pcm16_cur->FILTER.pcm16_arg;
-    } break;
+      semantic_pcm16_t(d, sym, pcm16_cur->FILTER.pcm16_arg);
+      //pcm16_cur = pcm16_cur->FILTER.pcm16_arg;
+    } goto exit;
     }
   }
 exit:

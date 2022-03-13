@@ -21,6 +21,7 @@
 
 #include <assert.h>
 #include <math.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,20 +98,17 @@ static int parse_notes_rests() {
     tok = read_next_tok(d);
 
     switch (tok) {
-    case:
-    TOK_DOT : {
+    case TOK_DOT: {
       f->duration /= 2;
       tok = read_next_tok(d);
       break;
     }
-    case:
-    TOK_UNDERSCORE : {
+    case TOK_UNDERSCORE: {
       f->duration /= 4;
       tok = read_next_tok(d);
       break;
     }
-    case:
-    TOK_NOTE : {
+    case TOK_NOTE: {
       f->next = malloc(sizeof(note_t));
       assert(f != NULL);
       f = f->next;
@@ -361,7 +359,12 @@ static int parse_staff() {
   return 0;
 }
 
+#define PARSE_PCM16_MAX_CALLS 16
 static pcm16_t *parse_pcm16_tail(pcm16_t *pcm16_head, pcm16_t *pcm16_tail) {
+  int nb_calls = 0;
+  pcm16_t *prev_pcm16h[PARSE_PCM16_MAX_CALLS] = {NULL},
+          *prev_pcm16t[PARSE_PCM16_MAX_CALLS] = {NULL};
+  jmp_buf calls[PARSE_PCM16_MAX_CALLS];
 append:
   tok = read_next_tok(d);
   switch (tok) {
@@ -415,6 +418,7 @@ append:
     pcm16_tail->SYNTH.staff_column = column_token_found;
     pcm16_tail->SYNTH.staff_name = tok_identifier;
     tok_identifier = NULL;
+    REPORT("----> %s\n", pcm16_tail->SYNTH.staff_name);
 
     //    symrec_t *staff = getsym(d, tok_identifier);
     //    if (staff == NULL) {
@@ -586,8 +590,22 @@ append:
     pcm16_tail->FILTER.pcm16_column = column_token_found;
     pcm16_tail->FILTER.pcm16_arg = malloc(sizeof(pcm16_t));
     assert(pcm16_tail->FILTER.pcm16_arg != NULL);
-    pcm16_tail->FILTER.pcm16_arg = parse_pcm16_tail(
-        pcm16_tail->FILTER.pcm16_arg, pcm16_tail->FILTER.pcm16_arg);
+
+    prev_pcm16h[nb_calls] = pcm16_head;
+    prev_pcm16t[nb_calls] = pcm16_tail;
+    pcm16_head = pcm16_tail->FILTER.pcm16_arg;
+    pcm16_tail = pcm16_tail->FILTER.pcm16_arg;
+    if (!setjmp(calls[nb_calls])) {
+      nb_calls++;
+      tok_identifier = NULL;
+      goto append;
+    }
+    pcm16_tail->FILTER.pcm16_arg = pcm16_head;
+    // parse_pcm16_tail(
+    // pcm16_tail->FILTER.pcm16_arg, pcm16_tail->FILTER.pcm16_arg);
+    nb_calls--;
+    pcm16_head = prev_pcm16h[nb_calls];
+    pcm16_tail = prev_pcm16t[nb_calls];
 
     if (pcm16_tail->FILTER.pcm16_arg == NULL) {
       destroy_pcm16_t(pcm16_head);
@@ -675,6 +693,8 @@ append:
     destroy_pcm16_t(pcm16_head);
     return NULL;
   }
+  if (nb_calls != 0)
+    longjmp(calls[nb_calls - 1], 1);
   return pcm16_head;
 }
 
