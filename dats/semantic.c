@@ -66,83 +66,87 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
   if (pcm16_cur == NULL)
     return 0;
 
-  while (pcm16_cur != NULL) {
-    switch (pcm16_cur->type) {
-    case ID: {
-      symrec_t *pcm16 = getsym(d, pcm16_cur->ID.id);
-      if (pcm16 == NULL) {
-        REPORT("Undefined reference to '%s'\n", pcm16_cur->ID.id);
-        print_scan_line(d->fp, pcm16_cur->ID.line, pcm16_cur->ID.column);
-        goto exit;
-      }
-      if (pcm16->type != TOK_PCM16) {
-        SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
-                 "Incompatible %s to pcm16\n", token_t_to_str(pcm16->type));
-        REPORT("note: previously declared here:\n");
-        print_scan_line(d->fp, pcm16->line, pcm16->column);
-        goto exit;
-      }
-      if (pcm16 == sym) {
-        SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
-                 "Infringing definition to itself\n");
-        REPORT("with:\n");
-        print_scan_line(d->fp, pcm16->line, pcm16->column);
-      }
-    }
+  switch (pcm16_cur->type) {
+  case ID: {
+    symrec_t *pcm16 = getsym(d, pcm16_cur->ID.id);
+    if (pcm16 == NULL) {
+      REPORT("Undefined reference to '%s'\n", pcm16_cur->ID.id);
+      print_scan_line(d->fp, pcm16_cur->ID.line, pcm16_cur->ID.column);
       goto exit;
-    case SYNTH: {
-      const DSSynth *driver = get_dsynth_by_name(pcm16_cur->SYNTH.synth_name);
-      if (driver == NULL) {
-        SEMANTIC(d, pcm16_cur->SYNTH.synth_line, pcm16_cur->SYNTH.synth_column,
-                 "No synth named, '%s'\n", pcm16_cur->SYNTH.synth_name);
-        err = 1;
-      }
-      symrec_t *pcm16 = getsym(d, pcm16_cur->SYNTH.staff_name);
-      if (pcm16 == NULL) {
-        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-                 "Undefined reference to '%s'\n", pcm16_cur->SYNTH.staff_name);
-        err = 1;
-      }
-      if (err) goto exit;
-      if (pcm16->type != TOK_STAFF) {
-        SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-                 "Incompatible %s to staff\n", token_t_to_str(pcm16->type));
-        REPORT("note: previously declared here:\n");
-        print_scan_line(d->fp, pcm16->line, pcm16->column);
-      }
-      for (size_t i = 0; i < pcm16_cur->SYNTH.nb_options; i++) {
-        for (DSOption *options = driver->options; options->option_name != NULL;
-             options++) {
-          if (!strcmp(options->option_name,
-                      pcm16_cur->SYNTH.options[i].option_name)) {
-            goto found;
-          }
+    }
+    if (pcm16->type != TOK_PCM16) {
+      SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
+               "Incompatible %s to pcm16\n", token_t_to_str(pcm16->type));
+      REPORT("note: previously declared here:\n");
+      print_scan_line(d->fp, pcm16->line, pcm16->column);
+      goto exit;
+    }
+    if (pcm16 == sym) {
+      SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
+               "Infringing definition to itself\n");
+      REPORT("with:\n");
+      print_scan_line(d->fp, pcm16->line, pcm16->column);
+    }
+  }
+    goto exit;
+  case SYNTH: {
+    const DSSynth *driver = get_dsynth_by_name(pcm16_cur->SYNTH.synth_name);
+    if (driver == NULL) {
+      SEMANTIC(d, pcm16_cur->SYNTH.synth_line, pcm16_cur->SYNTH.synth_column,
+               "No synth named, '%s'\n", pcm16_cur->SYNTH.synth_name);
+      err = 1;
+    }
+    symrec_t *pcm16 = getsym(d, pcm16_cur->SYNTH.staff_name);
+    if (pcm16 == NULL) {
+      SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
+               "Undefined reference to '%s'\n", pcm16_cur->SYNTH.staff_name);
+      err = 1;
+    }
+    if (err)
+      goto exit;
+    if (pcm16->type != TOK_STAFF) {
+      SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
+               "Incompatible %s to staff\n", token_t_to_str(pcm16->type));
+      REPORT("note: previously declared here:\n");
+      print_scan_line(d->fp, pcm16->line, pcm16->column);
+    }
+    for (size_t i = 0; i < pcm16_cur->SYNTH.nb_options; i++) {
+      for (DSOption *options = driver->options; options->option_name != NULL;
+           options++) {
+        if (!strcmp(options->option_name,
+                    pcm16_cur->SYNTH.options[i].option_name)) {
+          goto found;
         }
-        SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
-                 pcm16_cur->SYNTH.options[i].column,
-                 "No synth options named, '%s'\n",
-                 pcm16_cur->SYNTH.options[i].option_name);
-      found : {}
       }
-      //    printf("Synth %s found\n", tok_identifier);
-      //    free(tok_identifier);
+      SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
+               pcm16_cur->SYNTH.options[i].column,
+               "No synth options named, '%s'\n",
+               pcm16_cur->SYNTH.options[i].option_name);
+    found : {}
+    }
+    //    printf("Synth %s found\n", tok_identifier);
+    //    free(tok_identifier);
 
-      //    pcm16_t *(*const synth)(const symrec_t *const staff) =
-      //    driver->synth;
+    //    pcm16_t *(*const synth)(const symrec_t *const staff) =
+    //    driver->synth;
+  }
+    goto exit;
+  case FILTER: {
+    const DFFilter *driver = get_dfilter_by_name(pcm16_cur->FILTER.filter_name);
+    if (driver == NULL) {
+      SEMANTIC(d, pcm16_cur->FILTER.filter_line,
+               pcm16_cur->FILTER.filter_column, "No filter named, '%s'\n",
+               pcm16_cur->FILTER.filter_name);
     }
-      goto exit;
-    case FILTER: {
-      const DFFilter *driver =
-          get_dfilter_by_name(pcm16_cur->FILTER.filter_name);
-      if (driver == NULL) {
-        SEMANTIC(d, pcm16_cur->FILTER.filter_line,
-                 pcm16_cur->FILTER.filter_column, "No filter named, '%s'\n",
-                 pcm16_cur->FILTER.filter_name);
-      }
-      semantic_pcm16_t(d, sym, pcm16_cur->FILTER.pcm16_arg);
-      //pcm16_cur = pcm16_cur->FILTER.pcm16_arg;
-    } goto exit;
-    }
+    for (pcm16_t *pc = pcm16_cur->FILTER.pcm16_arg; pc != NULL; pc = pc->next)
+      semantic_pcm16_t(d, sym, pc);
+    // pcm16_cur = pcm16_cur->FILTER.pcm16_arg;
+  }
+    goto exit;
+  case MIX:
+    for (uint32_t nb_args = 0; nb_args < pcm16_cur->MIX.nb_pcm16; nb_args++)
+      semantic_pcm16_t(d, sym, pcm16_cur->MIX.pcm16[nb_args]);
+    goto exit;
   }
 exit:
   return local_errors; // semantic_pcm16_t(d, n, c->next);
@@ -154,7 +158,7 @@ int semantic_cur_dats_t(dats_t *d) {
   for (symrec_t *n = d->sym_table; n != NULL; n = n->next) {
     switch (n->type) {
     case TOK_PCM16:
-      print_pcm16_t(n->value.pcm16.pcm);
+      // print_pcm16_t(n->value.pcm16.pcm);
       for (pcm16_t *pc = n->value.pcm16.pcm; pc != NULL; pc = pc->next)
         (void)semantic_pcm16_t(d, n, pc);
       break;

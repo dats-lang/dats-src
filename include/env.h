@@ -135,7 +135,7 @@ struct pcm16_t {
     } ID;
     struct {
       uint32_t nb_pcm16;
-      pcm16_t *pcm16; // an array
+      pcm16_t **pcm16; // an array
       size_t line, column;
     } MIX;
     struct {

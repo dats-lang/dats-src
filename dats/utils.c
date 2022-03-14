@@ -18,7 +18,9 @@ void print_pcm16_t(pcm16_t *const pcm16) {
   if (pcm16 == NULL)
     return;
   puts("PCM16");
+  int ctr = 0;
   for (pcm16_t *p = pcm16; p != NULL; p = p->next) {
+    printf("%s: %d\n", __func__, ctr++);
     switch (p->type) {
     case ID:
       printf("ID %s\n", p->ID.id);
@@ -31,6 +33,7 @@ void print_pcm16_t(pcm16_t *const pcm16) {
       }
       break;
     case FILTER:
+      printf("FILTER %s %p\n", p->FILTER.filter_name, p->FILTER.pcm16_arg);
       print_pcm16_t(p->FILTER.pcm16_arg);
       for (size_t i = 0; i < p->FILTER.nb_options; i++) {
         printf("option: %s\n", p->FILTER.options[i].option_name);

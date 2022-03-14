@@ -62,7 +62,7 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
       break;
     case MIX:
       for (uint32_t i = 0; i < a->MIX.nb_pcm16; i++)
-        destroy_pcm16_t(a->MIX.pcm16);
+        destroy_pcm16_t(a->MIX.pcm16[i]);
       break;
     case FILTER:
       free(a->FILTER.filter_name);
@@ -204,7 +204,7 @@ int fpeekc(FILE *fp) {
 
 long int fpeeks(char *buff, long size, FILE *fp) {
   size = fread(buff, 1, size, fp);
-  fseek(fp, -size, SEEK_SET);
+  fseek(fp, -size, SEEK_CUR);
   return size;
 }
 

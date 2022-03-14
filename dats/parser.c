@@ -359,13 +359,30 @@ static int parse_staff() {
   return 0;
 }
 
-#define PARSE_PCM16_MAX_CALLS 16
+#define PARSE_PCM16_MAX_CALLS 64
 static pcm16_t *parse_pcm16_tail(pcm16_t *pcm16_head, pcm16_t *pcm16_tail) {
-  int nb_calls = 0;
+  /* To prevent recursive calls which would eventually crash because of the
+   * limitation of the stack, recursive calls are simulated by recording the
+   * following variables:
+   */
+  int nb_calls = 0; /* The number of recursive calls */
+
+  /* Its previous arguments */
   pcm16_t *prev_pcm16h[PARSE_PCM16_MAX_CALLS] = {NULL},
           *prev_pcm16t[PARSE_PCM16_MAX_CALLS] = {NULL};
-  jmp_buf calls[PARSE_PCM16_MAX_CALLS];
+  pcm16_type_t calls[PARSE_PCM16_MAX_CALLS] = {0};
+  // jmp_buf calls[PARSE_PCM16_MAX_CALLS]; /* and where is its previous caller
+  // */
+
 append:
+  if (nb_calls == PARSE_PCM16_MAX_CALLS) {
+    C_ERROR(d, "%d maximum calls has reached. Killing self\n",
+            PARSE_PCM16_MAX_CALLS);
+    exit(1);
+    pcm16_head = NULL;
+    // longjmp(calls[nb_calls-1], 1);
+  }
+
   tok = read_next_tok(d);
   switch (tok) {
   case TOK_SYNTH: {
@@ -391,16 +408,6 @@ append:
     pcm16_tail->SYNTH.nb_options = 0;
     tok_identifier = NULL;
 
-    //    const DSSynth *driver = get_dsynth_by_name(tok_identifier);
-    //    if (driver == NULL) {
-    //      C_ERROR(d, "No synth %s\n", tok_identifier);
-    //      return NULL;
-    //    }
-    //    printf("Synth %s found\n", tok_identifier);
-    //    free(tok_identifier);
-
-    //    pcm16_t *(*const synth)(const symrec_t *const staff) =
-    //    driver->synth;
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
       UNEXPECTED(tok, d);
@@ -418,14 +425,6 @@ append:
     pcm16_tail->SYNTH.staff_column = column_token_found;
     pcm16_tail->SYNTH.staff_name = tok_identifier;
     tok_identifier = NULL;
-    REPORT("----> %s\n", pcm16_tail->SYNTH.staff_name);
-
-    //    symrec_t *staff = getsym(d, tok_identifier);
-    //    if (staff == NULL) {
-    //      C_ERROR(d, "Undefined reference to %s\n", tok_identifier);
-    //      return NULL;
-    //    }
-    //    free(tok_identifier);
 
     tok = read_next_tok(d);
     if (tok != TOK_RPAREN) {
@@ -433,11 +432,6 @@ append:
       destroy_pcm16_t(pcm16_head);
       return NULL;
     }
-
-    //    if (staff->type != TOK_STAFF) {
-    //      C_ERROR(d, "Synths takes staff not %s\n",
-    //      token_t_to_str(staff->type)); return NULL;
-    //    }
 
     tok = read_next_tok(d);
     if (tok == TOK_LBRACKET) {
@@ -529,27 +523,79 @@ append:
       pcm16_tail->next = NULL;
       goto append;
     }
-  } break; /*
-   case TOK_MIX: {
-     tok = read_next_tok(d);
-     if (tok != TOK_LPAREN) {
-       UNEXPECTED(tok, d);
-       destroy_pcm16_t(pcm16_head);
-       return NULL;
-     }
-     pcm16_tail->type = MIX;
-     pcm16_tail->MIX.line = line_token_found;
-     pcm16_tail->MIX.column = column_token_found;
-     pcm16_tail->MIX.nb_pcm16 = 0;
-     pcm16_tail->MIX.pcm16 = NULL;
+  } break;
+  case TOK_MIX: {
+    tok = read_next_tok(d);
+    if (tok != TOK_LPAREN) {
+      UNEXPECTED(tok, d);
+      destroy_pcm16_t(pcm16_head);
+      return NULL;
+    }
+    pcm16_tail->type = MIX;
+    pcm16_tail->pcm = NULL;
+    pcm16_tail->MIX.line = line_token_found;
+    pcm16_tail->MIX.column = column_token_found;
+    pcm16_tail->MIX.nb_pcm16 = 0;
+    pcm16_tail->MIX.pcm16 = NULL;
+    int nb_pcm16s = 0;
+    pcm16_t **pcm16s = NULL;
 
-     tok = read_next_tok(d);
-     switch (tok){
+    do {
+      tok = read_next_tok(d);
+      if (tok != TOK_LPAREN) {
+        UNEXPECTED(tok, d);
+        destroy_pcm16_t(pcm16_head);
+        return NULL;
+      }
+      nb_pcm16s++;
+      pcm16s = realloc(pcm16s, sizeof(pcm16_t *) * nb_pcm16s);
+      assert(pcm16s != NULL);
+      pcm16s[nb_pcm16s - 1] = malloc(sizeof(pcm16_t));
+      assert(pcm16s[nb_pcm16s - 1] != NULL);
+      pcm16s[nb_pcm16s - 1]->next = NULL;
 
+      prev_pcm16h[nb_calls] = pcm16_head;
+      prev_pcm16t[nb_calls] = pcm16_tail;
+      pcm16_head = pcm16s[nb_pcm16s - 1];
+      pcm16_tail = pcm16s[nb_pcm16s - 1];
+      calls[nb_calls] = MIX;
+      nb_calls++;
+      tok_identifier = NULL;
+      /* call the function */
+      goto append;
+    MIX:
+      nb_calls--;
+      /* Restore this function arguments */
+      pcm16_tail = prev_pcm16t[nb_calls];
+      pcm16s[nb_pcm16s - 1] = pcm16_head;
+      pcm16_head = prev_pcm16h[nb_calls];
 
-     }
-     printf("read %s\n", token_t_to_str(tok));
-   } break;*/
+      if (tok != TOK_RPAREN) {
+        UNEXPECTED(tok, d);
+        destroy_pcm16_t(pcm16_head);
+        return NULL;
+      }
+      tok = read_next_tok(d);
+    } while (tok == TOK_COMMA);
+    if (tok != TOK_RPAREN) {
+      UNEXPECTED(tok, d);
+      destroy_pcm16_t(pcm16_head);
+      return NULL;
+    }
+    pcm16_tail->MIX.pcm16 = pcm16s;
+    pcm16_tail->MIX.nb_pcm16 = nb_pcm16s;
+    tok = read_next_tok(d);
+
+    // tok = read_next_tok(d);
+    printf("read %s\n", token_t_to_str(tok));
+    if (tok == TOK_COMMA) {
+      pcm16_tail->next = malloc(sizeof(pcm16_t));
+      assert(pcm16_tail != NULL);
+      pcm16_tail = pcm16_tail->next;
+      pcm16_tail->next = NULL;
+      goto append;
+    }
+  } break;
   case TOK_FILTER: {
     tok = read_next_tok(d);
     if (tok != TOK_DOT) {
@@ -580,32 +626,38 @@ append:
       return NULL;
     }
 
-    //    tok = read_next_tok(d);
-    //    if (tok != TOK_IDENTIFIER) {
-    //      UNEXPECTED(tok, d);
-    //      destroy_pcm16_t(pcm16_head);
-    //      return NULL;
-    //    }
     pcm16_tail->FILTER.pcm16_line = line_token_found;
     pcm16_tail->FILTER.pcm16_column = column_token_found;
     pcm16_tail->FILTER.pcm16_arg = malloc(sizeof(pcm16_t));
     assert(pcm16_tail->FILTER.pcm16_arg != NULL);
+    pcm16_tail->FILTER.pcm16_arg->next = NULL;
 
+    /* Push current state to stack */
     prev_pcm16h[nb_calls] = pcm16_head;
     prev_pcm16t[nb_calls] = pcm16_tail;
+
+    /* arguments */
     pcm16_head = pcm16_tail->FILTER.pcm16_arg;
     pcm16_tail = pcm16_tail->FILTER.pcm16_arg;
-    if (!setjmp(calls[nb_calls])) {
-      nb_calls++;
-      tok_identifier = NULL;
-      goto append;
-    }
+    //    if (!setjmp(calls[nb_calls])) {
+    //      nb_calls++;
+    //      tok_identifier = NULL;
+    //      goto append;
+    //    }
+    calls[nb_calls] = FILTER;
+    nb_calls++;
+    tok_identifier = NULL;
+    /* call the function */
+    goto append;
+  FILTER:
+    /* Pop the stack and restore previous state */
+    nb_calls--;
+    pcm16_tail = prev_pcm16t[nb_calls];
     pcm16_tail->FILTER.pcm16_arg = pcm16_head;
+    assert(pcm16_head != NULL);
+    pcm16_head = prev_pcm16h[nb_calls];
     // parse_pcm16_tail(
     // pcm16_tail->FILTER.pcm16_arg, pcm16_tail->FILTER.pcm16_arg);
-    nb_calls--;
-    pcm16_head = prev_pcm16h[nb_calls];
-    pcm16_tail = prev_pcm16t[nb_calls];
 
     if (pcm16_tail->FILTER.pcm16_arg == NULL) {
       destroy_pcm16_t(pcm16_head);
@@ -693,8 +745,15 @@ append:
     destroy_pcm16_t(pcm16_head);
     return NULL;
   }
-  if (nb_calls != 0)
-    longjmp(calls[nb_calls - 1], 1);
+  if (nb_calls != 0) {
+    switch (calls[nb_calls - 1]) {
+    case FILTER:
+      goto FILTER;
+    case MIX:
+      goto MIX;
+    }
+    // longjmp(calls[nb_calls - 1], 1);
+  }
   return pcm16_head;
 }
 
