@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern void print_quote(int, void *, void *);
+
 #include "scanner.h"
 
 extern void print_all_nr_t(nr_t *nr);
@@ -370,15 +372,15 @@ static pcm16_t *parse_pcm16_tail(pcm16_t *pcm16_head, pcm16_t *pcm16_tail) {
   /* Its previous arguments */
   pcm16_t *prev_pcm16h[PARSE_PCM16_MAX_CALLS] = {NULL},
           *prev_pcm16t[PARSE_PCM16_MAX_CALLS] = {NULL};
+
+  /* and where is its previous caller*/
   pcm16_type_t calls[PARSE_PCM16_MAX_CALLS] = {0};
-  // jmp_buf calls[PARSE_PCM16_MAX_CALLS]; /* and where is its previous caller
-  // */
 
 append:
   if (nb_calls == PARSE_PCM16_MAX_CALLS) {
     C_ERROR(d, "%d maximum calls has reached. Killing self\n",
             PARSE_PCM16_MAX_CALLS);
-    exit(1);
+    print_quote(1, NULL, NULL);
     pcm16_head = NULL;
     // longjmp(calls[nb_calls-1], 1);
   }
@@ -586,8 +588,7 @@ append:
     pcm16_tail->MIX.nb_pcm16 = nb_pcm16s;
     tok = read_next_tok(d);
 
-    // tok = read_next_tok(d);
-    printf("read %s\n", token_t_to_str(tok));
+    // printf("read %s\n", token_t_to_str(tok));
     if (tok == TOK_COMMA) {
       pcm16_tail->next = malloc(sizeof(pcm16_t));
       assert(pcm16_tail != NULL);
@@ -809,79 +810,100 @@ static int parse_stmt() {
     if (pcm16 == NULL)
       return 1;
     rule_match = 1;
-  } /* else if (tok == TOK_WRITE) {
-     tok = read_next_tok(d);
-     if (tok != TOK_LPAREN) {
-       EXPECTING(TOK_LPAREN, d);
-       return 1;
-     }
+  } else if (tok == TOK_WRITE) {
+    tok = read_next_tok(d);
+    if (tok != TOK_LPAREN) {
+      EXPECTING(TOK_LPAREN, d);
+      return 1;
+    }
 
-     tok = read_next_tok(d);
-     if (tok != TOK_DQUOTE) {
-       C_ERROR(d, "`write`, expects an identifier between double quote\n");
-       return 1;
-     }
-     expecting = TOK_STRING;
-     tok = read_next_tok(d);
-     if (tok != TOK_STRING) {
-       EXPECTING(TOK_STRING, d);
-       return 1;
-     }
-     expecting = TOK_NULL;
-     FILE *fp = fopen(tok_identifier, "wb");
-     if (fp == NULL) {
-       perror(tok_identifier);
-       C_ERROR(d, "ERROR!\n");
-       return 1;
-     }
-     free(tok_identifier);
-     tok_identifier = NULL;
+    tok = read_next_tok(d);
+    if (tok != TOK_DQUOTE) {
+      C_ERROR(d, "`write`, expects an identifier between double quote\n");
+      return 1;
+    }
+    expecting = TOK_STRING;
+    tok = read_next_tok(d);
+    if (tok != TOK_STRING) {
+      EXPECTING(TOK_STRING, d);
+      return 1;
+    }
+    expecting = TOK_NULL;
+    /*
+         FILE *fp = fopen(tok_identifier, "wb");
+         if (fp == NULL) {
+           perror(tok_identifier);
+           C_ERROR(d, "ERROR!\n");
+           return 1;
+         }
+    */
+    symrec_t *write = malloc(sizeof(symrec_t));
+    assert(write != NULL);
+    write->type = TOK_WRITE;
+    write->line = line_token_found;
+    write->column = column_token_found;
+    write->value.write.total_numsamples = 0;
+    write->value.write.out_file = tok_identifier;
+    free(tok_identifier);
+    write->value.write.pcm = NULL;
+    write->next = d->sym_table;
+    d->sym_table = write;
 
-     tok = read_next_tok(d);
-     if (tok != TOK_DQUOTE) {
-       C_ERROR(d, "Identifier must end with a double quote\n");
-       return 1;
-     }
+    pcm16_t *pcm16_head = malloc(sizeof(pcm16_t));
+    assert(pcm16_head != NULL);
+    pcm16_head->next = NULL;
+    pcm16_head->pcm = NULL;
 
-     tok = read_next_tok(d);
-     if (tok != TOK_COMMA) {
-       EXPECTING(TOK_COMMA, d);
-       return 1;
-     }
+    tok_identifier = NULL;
+    write->value.write.pcm = pcm16_head;
+    tok_identifier = NULL;
 
-     symrec_t *pcm16 = parse_pcm16(NULL);
-     if (pcm16 == NULL)
-       return 1;
-     if (pcm16->type != TOK_PCM16) {
-       C_ERROR(d, "Macro, `write`, needs pcm16 variable type\n");
-       return 1;
-     }
-     struct WAV_info wav = {
-         .fp = fp,
-         .Subchunk1Size = 16,
-         .AudioFormat = 1,
-         .NumChannels = 1,
-         .SampleRate = 44100,
-         .NumSamples = pcm16->value.pcm16.total_numsamples,
-         .BitsPerSample = 16,
-     };
-     wav_write_header(&wav);
-     for (pcm16_t *ptmp = pcm16->value.pcm16.pcm; ptmp != NULL;
-          ptmp = ptmp->next)
-       fwrite(ptmp->pcm, sizeof(int16_t), ptmp->numsamples, fp);
-     fclose(fp);
-     free(tok_identifier);
-     tok_identifier = NULL;
+    tok = read_next_tok(d);
+    if (tok != TOK_DQUOTE) {
+      C_ERROR(d, "Identifier must end with a double quote\n");
+      return 1;
+    }
 
-     if (tok != TOK_RPAREN) {
-       EXPECTING(TOK_RPAREN, d);
-       return 1;
-     }
+    tok = read_next_tok(d);
+    if (tok != TOK_COMMA) {
+      EXPECTING(TOK_COMMA, d);
+      return 1;
+    }
+    if (parse_pcm16_tail(pcm16_head, pcm16_head) == NULL)
+      return 1;
 
-     tok = read_next_tok(d);
-     rule_match = 1;
-   } */
-  else
+    /*
+         symrec_t *pcm16 = parse_pcm16(NULL);
+         if (pcm16 == NULL)
+           return 1;
+         if (pcm16->type != TOK_PCM16) {
+           C_ERROR(d, "Macro, `write`, needs pcm16 variable type\n");
+           return 1;
+         }
+         struct WAV_info wav = {
+             .fp = fp,
+             .Subchunk1Size = 16,
+             .AudioFormat = 1,
+             .NumChannels = 1,
+             .SampleRate = 44100,
+             .NumSamples = pcm16->value.pcm16.total_numsamples,
+             .BitsPerSample = 16,
+         };
+         wav_write_header(&wav);
+         for (pcm16_t *ptmp = pcm16->value.pcm16.pcm; ptmp != NULL;
+              ptmp = ptmp->next)
+           fwrite(ptmp->pcm, sizeof(int16_t), ptmp->numsamples, fp);
+         fclose(fp);
+    */
+
+    if (tok != TOK_RPAREN) {
+      EXPECTING(TOK_RPAREN, d);
+      return 1;
+    }
+
+    tok = read_next_tok(d);
+    rule_match = 1;
+  } else
     return 0;
 
   if (tok != TOK_SEMICOLON) {
@@ -960,8 +982,8 @@ int parse_cur_dats_t(dats_t *const t) {
     if (tok == TOK_EOF)
       break;
   }
-  printf("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s: parsing successful\n",
-         __FILE__, __LINE__, __func__, d->fname);
+  /*printf("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s: parsing successful\n",
+         __FILE__, __LINE__, __func__, d->fname);+*/
 
   return local_errors;
 }

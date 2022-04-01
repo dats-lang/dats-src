@@ -35,4 +35,10 @@ dats/*.wav
 *.c~
 *.h~
 
+# Binaries
+readriff
+readsf2
+dats/dats
+
 version.h
+

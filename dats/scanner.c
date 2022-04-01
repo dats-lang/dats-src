@@ -63,6 +63,7 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
     case MIX:
       for (uint32_t i = 0; i < a->MIX.nb_pcm16; i++)
         destroy_pcm16_t(a->MIX.pcm16[i]);
+      free(a->MIX.pcm16);
       break;
     case FILTER:
       free(a->FILTER.filter_name);
@@ -106,7 +107,12 @@ void clean_all_symrec_t_all_dats_t() {
         }
       } break;
       case TOK_PCM16:
+        free(p->value.pcm16.identifier);
         destroy_pcm16_t(p->value.pcm16.pcm);
+        break;
+      case TOK_WRITE:
+        free(p->value.write.out_file);
+        destroy_pcm16_t(p->value.write.pcm);
         break;
       default:
         ERROR("UNKNOWN TYPE %d\n", p->type);
@@ -165,7 +171,7 @@ void print_debugging_info(const token_t tok, dats_t *d) {
         "^");
 }
 
-void print_scan_line(FILE *fp, const size_t line, const size_t column) {
+void print_scan_line(FILE *fp, const uint32_t line, const uint32_t column) {
   char buff[1000] = {0};
   rewind(fp);
   size_t num_line = 0;
@@ -315,7 +321,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -466,7 +472,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -756,7 +762,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -904,7 +910,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -1162,6 +1168,9 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
              p->value.staff.identifier == NULL ? "(null)"
                                                : p->value.staff.identifier,
              token_t_to_str(TOK_PCM16));
+      break;
+    case TOK_WRITE:
+      printf("  [write]\n");
       break;
     default:
       REPORT("Unknown token\n");

@@ -1,5 +1,6 @@
 #ifndef SCANNER_H
 #define SCANNER_H
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -27,8 +28,8 @@ EXTERN void print_debugging_info(const token_t tok, dats_t *d);
 EXTERN void print_scan_line(FILE *, const size_t, const size_t);
 EXTERN void destroy_pcm16_t(pcm16_t *);
 
-EXTERN int line_token_found;
-EXTERN int column_token_found;
+EXTERN uint32_t line_token_found;
+EXTERN uint32_t column_token_found;
 EXTERN int local_errors;
 EXTERN int global_errors;
 EXTERN int local_warnings;
@@ -94,8 +95,8 @@ EXTERN dats_t *dats_files;
 #define C_ERROR(d, ...)                                                        \
   {                                                                            \
     local_errors++;                                                            \
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON             \
-          "error" COLOR_OFF ": ",                                              \
+    ERROR("[" GREEN_ON "%s:%d@ %s" COLOR_OFF "] %s:%" PRIu32                   \
+          ":%" PRIu32 RED_ON "error" COLOR_OFF ": ",                           \
           __FILE__, __LINE__, __func__, d->fname, line_token_found,            \
           column_token_found);                                                 \
     ERROR(__VA_ARGS__);                                                        \
@@ -106,8 +107,8 @@ EXTERN dats_t *dats_files;
   {                                                                            \
     local_errors++;                                                            \
     if (x != TOK_ERR)                                                          \
-      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON           \
-            "error" COLOR_OFF ": expecting %s",                                \
+      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%" PRIu32                \
+            ":%" PRIu32 RED_ON "error" COLOR_OFF ": expecting %s",             \
             __FILE__, __LINE__, __func__, d->fname, line_token_found,          \
             column_token_found, token_t_to_str(x));                            \
     print_debugging_info(TOK_NULL, d);                                         \

@@ -1,3 +1,7 @@
+/* The author disclaims copyright to this source code, and
+ * puts it under public domain.
+ */
+
 #include "wav.h"
 #include <assert.h>
 #include <stdint.h>

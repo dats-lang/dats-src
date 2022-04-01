@@ -162,6 +162,9 @@ int semantic_cur_dats_t(dats_t *d) {
       for (pcm16_t *pc = n->value.pcm16.pcm; pc != NULL; pc = pc->next)
         (void)semantic_pcm16_t(d, n, pc);
       break;
+    case TOK_WRITE:
+      (void)semantic_pcm16_t(d, n, n->value.write.pcm);
+      break;
     }
   }
 

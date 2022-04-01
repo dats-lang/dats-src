@@ -1,5 +1,5 @@
 /* If you're compiling dats on a potato without `make` or `xxd`,
- * remove the `.prev` of this file. 
+ * remove the `.prev` of this file and copy it to dats/ 
  *
  * Below is some dummy commit hash of this software.
  */

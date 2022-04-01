@@ -25,6 +25,8 @@
 #include <string.h>
 #include <unistd.h>
 
+extern void register_deadquote(void);
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -111,6 +113,9 @@ int process_args(const int argc, char *const *argv) {
 }
 
 int main(int argc, char **argv) {
+#if __SANITIZE_ADDRESS__ != 1
+  register_deadquote();
+#endif
 #ifdef _WIN32
   {
     HINSTANCE dll_module;

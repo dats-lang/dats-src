@@ -88,10 +88,11 @@ typedef enum music_symbol music_symbol;
 
 typedef struct note_t note_t;
 struct note_t {
+  /* duration of the sound */
   uint32_t duration; // for staccato and staccatissimo
 
   /* alternative for frequency */
-  char mnkey; // midi note number
+  uint8_t mnkey; // midi note number
 
   float frequency;
   float velocity;
@@ -99,13 +100,17 @@ struct note_t {
   float decay;
   float sustain;
   float release;
-  int volume;
+  uint32_t volume;
   note_t *next; /* a dyad or a chord maybe? */
 };
 
 typedef struct nr_t nr_t; /* list of notes and rests with properties */
 struct nr_t {
+  uint8_t block_id, block_repeat;
+  nr_t *block;
+
   music_symbol type;
+  /* length of musical note/rest */
   uint32_t length;
   note_t *note; /* if type = SYM_NOTE */
   nr_t *next;
@@ -115,7 +120,7 @@ typedef struct synth_option_t synth_option_t;
 typedef struct synth_option_t filter_option_t;
 struct synth_option_t {
   char *option_name;
-  int line, column;
+  uint32_t line, column;
   union {
     int intv;
     float floatv;
@@ -141,16 +146,16 @@ struct pcm16_t {
     struct {
       char *filter_name;
       pcm16_t *pcm16_arg; // a linked list
-      size_t filter_line, filter_column;
-      size_t pcm16_line, pcm16_column;
-      size_t nb_options;
+      uint32_t filter_line, filter_column;
+      uint32_t pcm16_line, pcm16_column;
+      uint16_t nb_options;
       filter_option_t *options;
     } FILTER;
     struct {
       char *synth_name, *staff_name;
-      size_t staff_line, staff_column;
-      size_t synth_line, synth_column;
-      size_t nb_options;
+      uint32_t staff_line, staff_column;
+      uint32_t synth_line, synth_column;
+      uint16_t nb_options;
       synth_option_t *options;
     } SYNTH;
   };
@@ -170,6 +175,11 @@ struct symrec_t {
       uint32_t numsamples;
     } staff; /* staff variables */
 
+    struct {
+      char *out_file;
+      pcm16_t *pcm;
+      uint32_t total_numsamples;
+    } write;
     /* struct
      {
        char *identifier;
@@ -188,10 +198,14 @@ struct symrec_t {
 
 typedef struct dats_t dats_t;
 struct dats_t {
-  FILE *fp;
+  /* `fp` contains the processed file */
+  /* `initial` contains the raw unprocessed file,
+   *   and will be processed by the processor.
+   */
+  FILE *fp, *initial;
   char *fname;
   char scan_line[500];
-  int line, column;
+  uint32_t line, column;
   symrec_t *sym_table;
 
   dats_t *next;
