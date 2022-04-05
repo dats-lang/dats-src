@@ -35,7 +35,7 @@ struct DSSynth {
   void (*const print_documentation)(void);
 
   /* This is set to your implementation of synth. */
-  pcm16_t *(*const synth)(const symrec_t *const staff);
+  int (*const synth)(const symrec_t *const staff, pcm16_t *const ctx);
 };
 
 #endif /* DSYNTH_H */

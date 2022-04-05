@@ -72,7 +72,7 @@ static int parse_notes_rests() {
       UNEXPECTED(tok, d);
       return 1;
     }
-    staff->value.staff.numsamples += cnr->length;
+    staff->value.staff.nb_samples += cnr->length;
     tok = read_next_tok(d);
 
     note_t *n = malloc(sizeof(note_t));
@@ -125,6 +125,7 @@ static int parse_notes_rests() {
       for (nr_t *p = staff->value.staff.nr; 1; p = p->next) {
         if (p->next == NULL) {
           p->next = cnr;
+          cnr->next = NULL;
           break;
         }
       }
@@ -158,7 +159,7 @@ static int parse_notes_rests() {
       goto add_lengthr;
     default:;
     }
-    staff->value.staff.numsamples += cnr->length;
+    staff->value.staff.nb_samples += cnr->length;
 
     if (staff->value.staff.nr != NULL)
       for (nr_t *p = staff->value.staff.nr; 1; p = p->next) {
@@ -336,7 +337,7 @@ static int parse_staff() {
   staff->column = column_token_found;
   staff->value.staff.identifier = tok_identifier;
   tok_identifier = NULL;
-  staff->value.staff.numsamples = 0;
+  staff->value.staff.nb_samples = 0;
   staff->value.staff.nr = NULL;
   staff->next = d->sym_table;
   d->sym_table = staff;
@@ -402,6 +403,7 @@ append:
     }
     pcm16_tail->type = SYNTH;
     pcm16_tail->pcm = NULL;
+    pcm16_tail->nb_samples = 0;
     pcm16_tail->SYNTH.synth_line = line_token_found;
     pcm16_tail->SYNTH.synth_column = column_token_found;
     pcm16_tail->SYNTH.synth_name = tok_identifier;
@@ -764,7 +766,7 @@ static symrec_t *parse_pcm16(char *id) {
   pcm16->type = TOK_PCM16;
   pcm16->line = line_token_found;
   pcm16->column = column_token_found;
-  pcm16->value.pcm16.total_numsamples = 0;
+  pcm16->value.pcm16.nb_samples = 0;
   pcm16->value.pcm16.identifier = id;
   pcm16->value.pcm16.pcm = NULL;
   pcm16->next = d->sym_table;
@@ -842,9 +844,9 @@ static int parse_stmt() {
     write->type = TOK_WRITE;
     write->line = line_token_found;
     write->column = column_token_found;
-    write->value.write.total_numsamples = 0;
+    //write->value.write.nb_samples = 0;
     write->value.write.out_file = tok_identifier;
-    free(tok_identifier);
+    tok_identifier = NULL;
     write->value.write.pcm = NULL;
     write->next = d->sym_table;
     d->sym_table = write;
@@ -854,7 +856,6 @@ static int parse_stmt() {
     pcm16_head->next = NULL;
     pcm16_head->pcm = NULL;
 
-    tok_identifier = NULL;
     write->value.write.pcm = pcm16_head;
     tok_identifier = NULL;
 

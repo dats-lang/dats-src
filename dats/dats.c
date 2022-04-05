@@ -39,6 +39,7 @@ extern void register_deadquote(void);
 /* Parses dats_t */
 extern int parse_cur_dats_t(dats_t *const t);
 extern int semantic_cur_dats_t(dats_t const *const);
+extern int exec_write(dats_t *);
 
 /* process_args returns the value 0 if sucesss and nonzero if
  * failed.
@@ -113,7 +114,7 @@ int process_args(const int argc, char *const *argv) {
 }
 
 int main(int argc, char **argv) {
-#if __SANITIZE_ADDRESS__ != 1
+#if 0/*__SANITIZE_ADDRESS__ != 1*/
   register_deadquote();
 #endif
 #ifdef _WIN32
@@ -144,6 +145,7 @@ int main(int argc, char **argv) {
       continue;
     if (semantic_cur_dats_t(p))
       continue;
+    exec_write(p);
     print_all_symrec_t_cur_dats_t(p);
   }
   if (global_errors)

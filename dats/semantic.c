@@ -40,6 +40,8 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
     case TOK_STAFF:
       id1 = sym1->value.staff.identifier;
       break;
+    default: continue;
+      
     }
     for (symrec_t *sym2 = sym1->next; sym2 != NULL; sym2 = sym2->next) {
       char *id2;
@@ -50,6 +52,7 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
       case TOK_STAFF:
         id2 = sym2->value.staff.identifier;
         break;
+      default: continue;
       }
       if (!strcmp(id1, id2)) {
         SEMANTIC(d, sym1->line, sym1->column, "Redefinition of '%s'\n", id1);
@@ -153,6 +156,7 @@ exit:
 }
 
 int semantic_cur_dats_t(dats_t *d) {
+  int err = 0;
   local_errors = 0;
   duplicates_symrec_t(d, d->sym_table);
   for (symrec_t *n = d->sym_table; n != NULL; n = n->next) {
@@ -168,7 +172,10 @@ int semantic_cur_dats_t(dats_t *d) {
     }
   }
 
+  if (local_errors)
+    err = 1;
   global_errors += local_errors;
   local_errors = 0;
-  return 0;
+
+  return err;
 }

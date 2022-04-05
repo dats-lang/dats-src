@@ -10,6 +10,7 @@
 #endif
 
 #include "synth.h"
+#include "log.h"
 
 /* clang-format off */
 static DSOption options[] = {
@@ -31,7 +32,7 @@ static void free_string_options(void) {
   }
 }
 
-static pcm16_t *synth(const symrec_t *staff) {
+static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   char *sf2_name;
   if (options[0].value.strv == NULL) {
     fprintf(stderr, "[s_sf2] no sf2 file entered.");
@@ -55,7 +56,7 @@ static pcm16_t *synth(const symrec_t *staff) {
    * values for the settings. */
   settings = new_fluid_settings();
   if (settings == NULL) {
-    fprintf(stderr, "Failed to create the settings\n");
+    DSYNTH_LOG("Failed to create the settings\n");
     err = 2;
     if (synth) {
       delete_fluid_synth(synth);
@@ -63,12 +64,12 @@ static pcm16_t *synth(const symrec_t *staff) {
     if (settings) {
       delete_fluid_settings(settings);
     }
-    return NULL;
+    return 1;
   }
   /* Create the synthesizer */
   synth = new_fluid_synth(settings);
   if (synth == NULL) {
-    fprintf(stderr, "Failed to create the synthesizer\n");
+    DSYNTH_LOG("Failed to create the synthesizer\n");
     err = 3;
     if (synth) {
       delete_fluid_synth(synth);
@@ -76,11 +77,11 @@ static pcm16_t *synth(const symrec_t *staff) {
     if (settings) {
       delete_fluid_settings(settings);
     }
-    return NULL;
+    return 1;
   }
   /* Load the soundfont */
   if (fluid_synth_sfload(synth, sf2_name, 1) == -1) {
-    fprintf(stderr, "Failed to load the SoundFont\n");
+    DSYNTH_LOG("Failed to load the SoundFont\n");
     err = 4;
     if (synth) {
       delete_fluid_synth(synth);
@@ -88,7 +89,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     if (settings) {
       delete_fluid_settings(settings);
     }
-    return NULL;
+    return 1;
   }
   fluid_synth_set_gain(synth, 5.0);
   int sfont_id, bank_num, preset_num;
@@ -96,11 +97,13 @@ static pcm16_t *synth(const symrec_t *staff) {
   fluid_synth_program_select(synth, 0, sfont_id, options[2].value.intv,
     options[1].value.intv);
 
+  uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
   int16_t *pcm =
-      calloc(sizeof(int16_t), (size_t)(staff->value.staff.numsamples));
-  pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
-  if (pcm_ctx == NULL || pcm == NULL)
-    return NULL;
+      calloc(tnb_samples, sizeof(int16_t));
+  if (pcm == NULL){
+    DSYNTH_LOG("non mem\n");
+    return 1;
+  }
 
   uint32_t total = 0;
   for (nr_t *n = staff->value.staff.nr; n != NULL; n = n->next) {
@@ -115,7 +118,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     total += n->length;
     if ((total % 44100) < 1000) {
-      printf("\r[s_sf2] %d/%d", total, staff->value.staff.numsamples);
+      printf("\r[s_sf2] %d/%d", total, staff->value.staff.nb_samples);
       fflush(stdout);
     }
   }
@@ -155,7 +158,7 @@ static pcm16_t *synth(const symrec_t *staff) {
        }
        total += n->length;
        if ((total % 44100) < 1000) {
-         printf("\r[s_sf2] %d/%d", total, staff->value.staff.numsamples);
+         printf("\r[s_sf2] %d/%d", total, staff->value.staff.nb_samples);
          fflush(stdout);
        }
      }*/
@@ -175,13 +178,13 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     putchar('\n');
   }
-  pcm_ctx->numsamples = total;
+  pcm_ctx->nb_samples = tnb_samples;
+  pcm_ctx->play_end = staff->value.staff.nb_samples;
   pcm_ctx->pcm = pcm;
-  pcm_ctx->next = NULL;
   free_string_options();
 
   //  sf2_destroy_sf2(sf2_ctx);
-  return pcm_ctx;
+  return 0;
 }
 
 DSSynth ss_sf2 = {

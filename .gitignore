@@ -40,5 +40,8 @@ readriff
 readsf2
 dats/dats
 
+# Core dump
+core
+
 version.h
 

@@ -3,4 +3,8 @@
 # libdfilter
 
 ENABLE_DEBUG = no
+ENABLE_ASAN = no
+
+# OPENMP is experimental and unintended
+# crashes may happen
 ENABLE_OPENMP = no

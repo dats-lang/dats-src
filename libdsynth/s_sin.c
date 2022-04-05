@@ -2,10 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef DATS_DETECT_MEM_LEAK
-#include "memory-leak-detector/leak_detector.h"
-#endif
 #include "synth.h"
+#include "log.h"
 
 /* clang-format off */
 static DSOption options[] = {
@@ -44,7 +42,7 @@ static double exponential_attack(double x, double n) { return pow(M_E, x - n); }
 static double exponential_release(double x, double n) {
   return pow(M_E, (-x - n) + 1.0);
 }
-static pcm16_t *synth(const symrec_t *staff) {
+static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
 
   double (*attack_ret)(double, double) = NULL;
   double (*release_ret)(double, double) = NULL;
@@ -58,7 +56,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     break;
   default:
     fprintf(stderr, "unknown attack type: %d\n", options[2].value.intv);
-    return NULL;
+    return 1;
   }
 
   switch (options[5].value.intv) {
@@ -70,12 +68,14 @@ static pcm16_t *synth(const symrec_t *staff) {
     break;
   default:
     fprintf(stderr, "unknown attack type: %d\n", options[5].value.intv);
-    return NULL;
+    return 1;
   }
-  int16_t *pcm = calloc(sizeof(int16_t), (size_t)staff->value.staff.numsamples);
-  pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
-  if (pcm_ctx == NULL || pcm == NULL)
-    return NULL;
+  uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
+  int16_t *pcm = calloc(tnb_samples, sizeof(int16_t));
+  if (pcm == NULL){
+    DSYNTH_LOG("no mem\n");
+    return 1;
+  }
 
   uint32_t total = 0;
   for (nr_t *n = staff->value.staff.nr; n != NULL; n = n->next) {
@@ -104,7 +104,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     total += n->length;
     if ((total % 44100) < 1000) {
-      printf("\r[s_sin] %d/%d", total, staff->value.staff.numsamples);
+      printf("\r[s_sin] %d/%d", total, staff->value.staff.nb_samples);
       fflush(stdout);
     }
   }
@@ -124,11 +124,11 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     putchar('\n');
   }
-  pcm_ctx->numsamples = staff->value.staff.numsamples;
+  pcm_ctx->play_end = staff->value.staff.nb_samples;
+  pcm_ctx->nb_samples = tnb_samples;
   pcm_ctx->pcm = pcm;
-  pcm_ctx->next = NULL;
   free_string_options();
-  return pcm_ctx;
+  return 0;
 }
 
 /* clang-format off */

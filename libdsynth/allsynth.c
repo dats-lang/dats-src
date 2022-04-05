@@ -4,12 +4,13 @@
 extern DSSynth ss_kpa;
 extern DSSynth ss_sin;
 extern DSSynth ss_square;
-extern DSSynth ss_synth;
+/*
+extern DSSynth ss_synth;*/
 extern DSSynth ss_sf2;
 
 #include "list_synths.c"
 
-const DSSynth *get_dsynth_by_name(const char *name) {
+DSSynth *get_dsynth_by_name(const char *name) {
 
   if (!*name || name == NULL)
     return NULL;

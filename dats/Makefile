@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2  -I.. -I../include
+CFLAGS = -Wall -Wextra -I.. -I../include
 
 OBJ = dats.o
 OBJ += parser.o 
@@ -8,14 +8,22 @@ OBJ += wav.o
 OBJ += semantic.o
 OBJ += utils.o
 OBJ += dquote.o
+OBJ += genpcm.o
+OBJ += write.o
 
 LDFLAGS = -L../libdsynth -ldsynth -L../libdfilter \
 	-ldfilter -lm 
 include ../config.txt
 
 ifeq ($(ENABLE_DEBUG), yes)
-	CFLAGS += -ggdb3
+	CFLAGS += -ggdb3 -O0
+else
+	CFLAGS += -O2
+endif
+
+ifeq ($(ENABLE_ASAN), yes)
 	LDFLAGS += -fsanitize=address
+	CFLAGS += -fsanitize=address
 endif
 
 ifeq ($(ENABLE_OPENMP), yes)

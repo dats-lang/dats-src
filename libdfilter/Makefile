@@ -4,7 +4,12 @@ LDFLAGS = -lm -L../sndfilter -lsndfilter
 include ../config.txt
 
 ifeq ($(ENABLE_DEBUG), yes)
-	CFLAGS += -ggdb3
+	CFLAGS += -ggdb3 -O0
+else
+	CFLAGS += -O3
+endif
+
+ifeq ($(ENABLE_ASAN), yes)
 	LDFLAGS += -fsanitize=address
 endif
 

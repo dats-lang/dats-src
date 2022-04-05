@@ -27,7 +27,7 @@ static void free_string_options(void) {
 }
 
 static pcm16_t *synth(const symrec_t *staff) {
-  int16_t *pcm = calloc(sizeof(int16_t), (size_t)staff->value.staff.numsamples);
+  int16_t *pcm = calloc(sizeof(int16_t), (size_t)staff->value.staff.nb_samples);
   pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
   if (pcm_ctx == NULL || pcm == NULL)
     return NULL;
@@ -45,7 +45,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     total += n->length;
     if ((total % 44100) < 1000) {
-      printf("\r[s_synth] %d/%d", total, staff->value.staff.numsamples);
+      printf("\r[s_synth] %d/%d", total, staff->value.staff.nb_samples);
       fflush(stdout);
     }
   }
@@ -65,7 +65,7 @@ static pcm16_t *synth(const symrec_t *staff) {
     }
     putchar('\n');
   }
-  pcm_ctx->numsamples = staff->value.staff.numsamples;
+  pcm_ctx->numsamples = staff->value.staff.nb_samples;
   pcm_ctx->pcm = pcm;
   pcm_ctx->next = NULL;
   free_string_options();

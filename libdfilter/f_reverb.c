@@ -8,10 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef DATS_DETECT_MEM_LEAK
-#include "memory-leak-detector/leak_detector.h"
-#endif
 #include "filter.h"
+#include "log.h"
 
 /* clang-format off */
 static DFOption options[] = {
@@ -32,19 +30,16 @@ static void free_string_options(void) {
   }
 }
 
-static pcm16_t *filter(const pcm16_t *pcm16) {
+static int filter(pcm16_t *pcm_ctx, pcm16_t *const pcm_src) {
 
-  pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
-  if (pcm_ctx == NULL)
-    return NULL;
 
   // read the data and convert to stereo floating point
   int16_t L, R;
-  sf_snd snd = sf_snd_new(pcm16->numsamples, 44100, false);
+  sf_snd snd = sf_snd_new(pcm_src->nb_samples, 44100, false);
   #pragma omp parallel for
-  for (uint32_t i = 0; i < pcm16->numsamples; i++) {
+  for (uint32_t i = 0; i < pcm_src->nb_samples; i++) {
     // read the sample
-    L = pcm16->pcm[i];
+    L = pcm_src->pcm[i];
     R = L; // expand to stereo
 
     // convert the sample to floating point
@@ -61,21 +56,21 @@ static pcm16_t *filter(const pcm16_t *pcm16) {
       snd->samples[i].R = (float)R / 32767.0f;
   }
   sf_reverb_preset p = SF_REVERB_PRESET_DEFAULT;
-  sf_snd output_snd = sf_snd_new(pcm16->numsamples + 44100, 44100, true);
+  sf_snd output_snd = sf_snd_new(pcm_src->nb_samples + 44100, 44100, true);
   if (output_snd == NULL) {
-    fprintf(stderr, "Error: Failed to apply filter\n");
-    return NULL;
+    DFILTER_LOG("Error: Failed to apply filter\n");
+    return 1;
   }
 
   // process the reverb in one sweep
   sf_reverb_state_st rv;
   sf_presetreverb(&rv, 44100, p);
-  sf_reverb_process(&rv, pcm16->numsamples, snd->samples, output_snd->samples);
+  sf_reverb_process(&rv, pcm_src->nb_samples, snd->samples, output_snd->samples);
 
   // append the tail
   int tailsmp = 44100;
   if (tailsmp > 0) {
-    int pos = pcm16->numsamples;
+    int pos = pcm_src->nb_samples;
     sf_sample_st *empty = malloc(sizeof(sf_sample_st)*48000);
     memset(empty, 0, sizeof(sf_sample_st) * 48000);
     while (tailsmp > 0) {
@@ -107,7 +102,7 @@ static pcm16_t *filter(const pcm16_t *pcm16) {
     }
     putchar('\n');
   }
-  pcm_ctx->numsamples = output_snd->size;
+  pcm_ctx->nb_samples = output_snd->size;
   pcm_ctx->pcm = malloc(sizeof(int16_t) * output_snd->size);
   #pragma omp parallel for
   for (int i = 0; i < output_snd->size; i++) {
@@ -119,9 +114,8 @@ static pcm16_t *filter(const pcm16_t *pcm16) {
   }
   free(output_snd->samples);
   free(output_snd);
-  pcm_ctx->next = NULL;
   free_string_options();
-  return pcm_ctx;
+  return 0;
 }
 
 /* clang-format off */

@@ -1,11 +1,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef DATS_DETECT_MEM_LEAK
-#include "memory-leak-detector/leak_detector.h"
-#endif
 #include "synth.h"
+#include "log.h"
 
+static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx);
+ 
 /* clang-format off */
 static DSOption options[] = {
     {.option_name = NULL}
@@ -24,12 +24,14 @@ static void free_string_options(void) {
   }
 }
 
-static pcm16_t *synth(const symrec_t *restrict staff) {
-  int16_t *pcm =
-      calloc(sizeof(int16_t), (size_t)staff->value.staff.numsamples + 1000);
-  pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
-  if (pcm_ctx == NULL || pcm == NULL)
-    return NULL;
+static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
+//  int16_t *pcm = pcm_ctx->pcm;
+  uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
+  int16_t *pcm = calloc(tnb_samples, sizeof(int16_t));
+  if (pcm == NULL){
+    DSYNTH_LOG("no mem\n");
+    return 1;
+  }
 
   uint32_t total = 0;
   for (nr_t *n = staff->value.staff.nr; n != NULL; n = n->next) {
@@ -41,7 +43,7 @@ static pcm16_t *synth(const symrec_t *restrict staff) {
         int16_t prev = 0;
         uint32_t cur = 0;
         for (uint32_t i = 0; i < nn->duration; i++) {
-          wavetable[cur] = ((wavetable[cur] / 2) + (prev / 2));
+          wavetable[cur] = ((wavetable[cur]/2) + (prev / 2));
           pcm[total + i] +=
               (int16_t)
               /* simple linear attack and linear decay filter */
@@ -51,7 +53,6 @@ static pcm16_t *synth(const symrec_t *restrict staff) {
                    : (i > nn->duration - (uint32_t)nn->release
                           ? (-(double)i + (double)(nn->duration)) / nn->release
                           : 1.0));
-          // pcm[total + i] += wavetable[cur];
           prev = wavetable[cur];
           cur++;
           cur %= (int)(44100.0 / nn->frequency);
@@ -62,7 +63,7 @@ static pcm16_t *synth(const symrec_t *restrict staff) {
     }
     total += n->length;
     if ((total % 44100) < 1000) {
-      printf("\r[s_kpa] %d/%d", total, staff->value.staff.numsamples);
+      printf("\r[s_kpa] %d/%d", total, staff->value.staff.nb_samples);
       fflush(stdout);
     }
   }
@@ -82,11 +83,11 @@ static pcm16_t *synth(const symrec_t *restrict staff) {
     }
     putchar('\n');
   }
-  pcm_ctx->numsamples = staff->value.staff.numsamples + 1000;
   pcm_ctx->pcm = pcm;
-  pcm_ctx->next = NULL;
+  pcm_ctx->nb_samples = tnb_samples;
+  pcm_ctx->play_end = tnb_samples;
   free_string_options();
-  return pcm_ctx;
+  return 0;
 }
 
 /* clang-format off */

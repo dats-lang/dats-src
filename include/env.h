@@ -83,7 +83,7 @@ enum token_t {
 };
 typedef enum token_t token_t;
 
-enum music_symbol { SYM_REST, SYM_NOTE };
+enum music_symbol { SYM_REST, SYM_NOTE, SYM_BLOCK };
 typedef enum music_symbol music_symbol;
 
 typedef struct note_t note_t;
@@ -106,13 +106,19 @@ struct note_t {
 
 typedef struct nr_t nr_t; /* list of notes and rests with properties */
 struct nr_t {
-  uint8_t block_id, block_repeat;
-  nr_t *block;
-
   music_symbol type;
-  /* length of musical note/rest */
-  uint32_t length;
-  note_t *note; /* if type = SYM_NOTE */
+  union {
+    struct {
+      uint8_t block_id, block_repeat;
+      nr_t *block;
+    };
+
+    struct {
+      /* length of musical note/rest */
+      uint32_t length;
+      note_t *note; /* if type = SYM_NOTE */
+    };
+  };
   nr_t *next;
 };
 
@@ -130,6 +136,7 @@ struct synth_option_t {
 
 enum pcm16_type_t { ID, MIX, FILTER, SYNTH };
 typedef enum pcm16_type_t pcm16_type_t;
+
 typedef struct pcm16_t pcm16_t;
 struct pcm16_t {
   pcm16_type_t type;
@@ -160,7 +167,20 @@ struct pcm16_t {
     } SYNTH;
   };
   int16_t *pcm;
-  uint32_t numsamples;
+  uint32_t nb_samples;
+  float gain;
+
+/*  A play_end is suppose to mark the end of a playing.
+ *  This is needed because the rest of it might just be
+ *  reverberation. Like for example: If you stop playing,
+ *  the instrument continues to attenuate. It does not
+ *  immediately stop.
+ *
+ *  play_end is always less than or equal to nb_samples;
+ *   play_end <= nb_samples
+ */
+  uint32_t play_end;
+
   pcm16_t *next;
 };
 
@@ -172,13 +192,13 @@ struct symrec_t {
     struct {
       char *identifier;
       nr_t *nr;
-      uint32_t numsamples;
+      uint32_t nb_samples;
     } staff; /* staff variables */
 
     struct {
       char *out_file;
       pcm16_t *pcm;
-      uint32_t total_numsamples;
+ //     uint32_t nb_samples;
     } write;
     /* struct
      {
@@ -188,7 +208,7 @@ struct symrec_t {
 
     struct {
       char *identifier;
-      uint32_t total_numsamples;
+      uint32_t nb_samples;
       pcm16_t *pcm;
     } pcm16;
   } value;
