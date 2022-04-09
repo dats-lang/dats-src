@@ -15,10 +15,10 @@ static DSOption options[] = {
 
 };
 
-static void free_string_options(void) {
+static void reset_options_to_default(void) {
   for (int i = 0; options[i].option_name != NULL; i++) {
     if (options[i].type != DSOPTION_STRING) {
-      options[i].value.intv = 0;
+      options[i].value.floatv = 0;
       options[i].value.floatv = 0.0;
       continue;
     }
@@ -56,8 +56,8 @@ static pcm16_t *synth(const symrec_t *staff) {
     case DSOPTION_FLOAT:
       printf("%f", ctx->value.floatv);
       break;
-    case DSOPTION_INT:
-      printf("%d", ctx->value.intv);
+    case DSOPTION_FLOAT:
+      printf("%d", ctx-.value.floatv);
       break;
     case DSOPTION_STRING:
       printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
@@ -68,7 +68,7 @@ static pcm16_t *synth(const symrec_t *staff) {
   pcm_ctx->numsamples = staff->value.staff.nb_samples;
   pcm_ctx->pcm = pcm;
   pcm_ctx->next = NULL;
-  free_string_options();
+  reset_options_to_default();
   return pcm_ctx;
 }
 

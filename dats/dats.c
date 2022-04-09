@@ -114,7 +114,7 @@ int process_args(const int argc, char *const *argv) {
 }
 
 int main(int argc, char **argv) {
-#if 0/*__SANITIZE_ADDRESS__ != 1*/
+#if 0 /*__SANITIZE_ADDRESS__ != 1*/
   register_deadquote();
 #endif
 #ifdef _WIN32

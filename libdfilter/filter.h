@@ -30,11 +30,11 @@ struct DFFilter {
    * Set this to NULL if there are none */
   DFOption *const options;
 
-  /* Prints documentation on stdout.
+  /* Prints documentation to stdout.
    * This must always point to something, not NULL! */
   void (*const print_documentation)(void);
 
-  /* This is set to your implementation of filter. */
+  /* This is set to your implementation of your filter. */
   int (*filter)(pcm16_t *pcm_dest, pcm16_t *pcm_src);
 };
 

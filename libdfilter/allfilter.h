@@ -3,7 +3,7 @@
 
 #include "filter.h"
 
-extern const DFFilter *get_dfilter_by_name(const char *name);
+extern DFFilter *get_dfilter_by_name(const char *name);
 extern void print_filters();
 
 #endif

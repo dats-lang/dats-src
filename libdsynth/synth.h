@@ -3,7 +3,7 @@
 #include "env.h"
 #include <stdint.h>
 
-enum DSOptionType { DSOPTION_FLOAT, DSOPTION_STRING, DSOPTION_INT };
+enum DSOptionType { DSOPTION_FLOAT, DSOPTION_STRING};
 typedef enum DSOptionType DSOptionType;
 
 typedef struct DSOption DSOption;
@@ -14,7 +14,6 @@ struct DSOption {
   union {
     char *strv;
     float floatv;
-    int intv;
   } value;
 };
 

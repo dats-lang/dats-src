@@ -1,0 +1,25 @@
+NOTE! THIS IS UNFINISHED
+
+Dependencies
+===========
+fluidsynth (tested on v2.2.3)
+
+Dats pre-contain an sf2 file. This can be copied to
+/usr/share/soundfonts
+
+Unix
+=====
+
+Simply run `make`
+
+
+Unix Potato
+======
+
+By what I mean, potato, is an old OS
+with unmaintained software and packages.
+with only working C compiler. Dats
+can be compiled by copying scripts/build.sh
+to . and running it (`./build.sh`).
+
+

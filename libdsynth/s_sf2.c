@@ -15,16 +15,16 @@
 /* clang-format off */
 static DSOption options[] = {
    {DSOPTION_STRING, "sf2", "sf2 file", {.strv = NULL}},
-   {DSOPTION_INT, "preset", "preset num (default: 0)", {.intv = 0}},
-   {DSOPTION_INT, "bank", "bank num (default: 0)", {.intv = 0}},
+   {DSOPTION_FLOAT, "preset", "preset num (default: 0)", {.floatv = 0}},
+   {DSOPTION_FLOAT, "bank", "bank num (default: 0)", {.floatv = 0}},
    {.option_name = NULL}
 };
 /* clang-format on */
 
-static void free_string_options(void) {
+static void reset_options_to_default(void) {
   for (int i = 0; options[i].option_name != NULL; i++) {
     if (options[i].type != DSOPTION_STRING) {
-      options[i].value.intv = 0;
+      options[i].value.floatv = 0;
       options[i].value.floatv = 0.0;
       continue;
     }
@@ -94,8 +94,8 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   fluid_synth_set_gain(synth, 5.0);
   int sfont_id, bank_num, preset_num;
   fluid_synth_get_program(synth, 0, &sfont_id, &bank_num, &preset_num);
-  fluid_synth_program_select(synth, 0, sfont_id, options[2].value.intv,
-    options[1].value.intv);
+  fluid_synth_program_select(synth, 0, sfont_id, (int)options[2].value.floatv,
+   (int) options[1].value.floatv);
 
   uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
   int16_t *pcm =
@@ -169,9 +169,6 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     case DSOPTION_FLOAT:
       printf("%f", ctx->value.floatv);
       break;
-    case DSOPTION_INT:
-      printf("%d", ctx->value.intv);
-      break;
     case DSOPTION_STRING:
       printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
       break;
@@ -181,7 +178,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   pcm_ctx->nb_samples = tnb_samples;
   pcm_ctx->play_end = staff->value.staff.nb_samples;
   pcm_ctx->pcm = pcm;
-  free_string_options();
+  reset_options_to_default();
 
   //  sf2_destroy_sf2(sf2_ctx);
   return 0;

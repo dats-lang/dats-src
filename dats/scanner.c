@@ -67,6 +67,11 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
       break;
     case FILTER:
       free(a->FILTER.filter_name);
+      for (size_t i = 0; i < a->SYNTH.nb_options; i++) {
+        free(a->FILTER.options[i].option_name);
+        if (a->FILTER.options[i].is_strv)
+          free(a->FILTER.options[i].strv);
+      }
       destroy_pcm16_t(a->FILTER.pcm16_arg);
       break;
     case SYNTH:
@@ -74,7 +79,8 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
       free(a->SYNTH.staff_name);
       for (size_t i = 0; i < a->SYNTH.nb_options; i++) {
         free(a->SYNTH.options[i].option_name);
-        free(a->SYNTH.options[i].strv);
+        if (a->SYNTH.options[i].is_strv)
+          free(a->SYNTH.options[i].strv);
       }
       free(a->SYNTH.options);
       break;

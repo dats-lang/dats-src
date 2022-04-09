@@ -5,7 +5,7 @@ extern DFFilter f_reverb;
 
 #include "list_filters.c"
 
-const DFFilter *get_dfilter_by_name(const char *name) {
+DFFilter *get_dfilter_by_name(const char *name) {
 
   if (!*name || name == NULL)
     return NULL;

@@ -21,6 +21,18 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
-int16_t *dats_mix_int16(int16_t *pcm1, int16_t *pcm2) { return NULL; }
-float *dats_mix_float(float *pcm1, float *pcm2) { return NULL; }
+static float reduction(float k1, float k2){
+  return 1.0;
+ // return (k1+k2)*pow(10.0, (fabsf(k1+k2)/3.0)-1.0);
+}
+
+void mix16(int16_t *dst, int16_t *src, uint32_t nb_samples) {
+ for (uint32_t n = 0; n < nb_samples; n++){
+   /* This might be slow */
+   float k1 = (float)src[n]/(float)INT16_MAX;
+   float k2 = (float)dst[n]/(float)INT16_MAX;
+   dst[n] = (int16_t)(reduction(k1, k2)*(k1+k2)*(float)INT16_MAX);
+ }
+}

@@ -13,14 +13,13 @@ static DSOption options[] = {
 };
 /* clang-format on */
 
-static void free_string_options(void) {
+static void reset_options_to_default(void) {
   for (int i = 0; options[i].option_name != NULL; i++) {
     if (options[i].type != DSOPTION_STRING) {
-      options[i].value.intv = 0;
       options[i].value.floatv = 0.0;
       continue;
     }
-    free(options[i].value.strv);
+    //free(options[i].value.strv);
   }
 }
 
@@ -74,9 +73,6 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     case DSOPTION_FLOAT:
       printf("%f", ctx->value.floatv);
       break;
-    case DSOPTION_INT:
-      printf("%d", ctx->value.intv);
-      break;
     case DSOPTION_STRING:
       printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
       break;
@@ -86,7 +82,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   pcm_ctx->pcm = pcm;
   pcm_ctx->nb_samples = tnb_samples;
   pcm_ctx->play_end = tnb_samples;
-  free_string_options();
+  reset_options_to_default();
   return 0;
 }
 

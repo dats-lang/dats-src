@@ -9,28 +9,30 @@
 static DSOption options[] = {
    {DSOPTION_FLOAT, "vibrato_frequency", "Vibrato frequency", {.floatv = 0}},
    {DSOPTION_FLOAT, "vibrato_magnitude", "Vibrato magnitude", {.floatv = 0}},
-   {DSOPTION_INT, "attack_type", "Attack type (linear=0, exponential=1)", {.intv = 0}},
-   {DSOPTION_INT, "decay_type", "Decay type (linear=0, exponential=1)", {.intv = 0}},
-   {DSOPTION_INT, "sustain_type", "Sustain type (linear=0, exponential=1)", {.intv = 0}},
-   {DSOPTION_INT, "release_type", "Release type (linear=0, exponential=1)", {.intv = 0}},
+   {DSOPTION_FLOAT, "attack_type", "Attack type (linear=0, exponential=1)", {.floatv = 0}},
+   {DSOPTION_FLOAT, "decay_type", "Decay type (linear=0, exponential=1)", {.floatv = 0}},
+   {DSOPTION_FLOAT, "sustain_type", "Sustain type (linear=0, exponential=1)", {.floatv = 0}},
+   {DSOPTION_FLOAT, "release_type", "Release type (linear=0, exponential=1)", {.floatv = 0}},
    {DSOPTION_FLOAT, "attack_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
    {DSOPTION_FLOAT, "decay_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
    {DSOPTION_FLOAT, "sustain_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
    {DSOPTION_FLOAT, "release_exp_coeff", "Decay exponential coefficiant", {.floatv = 0.0}},
-   /*{DSOPTION_INT, "attack_s", "Attack ending in samples", {.intv = 0}},
-   {DSOPTION_INT, "decay_s", "Decay begin in samples", {.intv=  0}},*/
+   /*{DSOPTION_FLOAT, "attack_s", "Attack ending in samples", {.intv = 0}},
+   {DSOPTION_FLOAT, "decay_s", "Decay begin in samples", {.intv=  0}},*/
    {.option_name = NULL}
 };
 /* clang-format on */
 
-static void free_string_options(void) {
+static void reset_options_to_default(void) {
   for (int i = 0; options[i].option_name != NULL; i++) {
-    if (options[i].type != DSOPTION_STRING) {
-      options[i].value.intv = 0;
+    switch(options[i].type){ 
+    case DSOPTION_FLOAT:
       options[i].value.floatv = 0.0;
       continue;
+    case DSOPTION_STRING:
+      options[i].value.strv = NULL;
+      continue;
     }
-    free(options[i].value.strv);
   }
 }
 
@@ -47,29 +49,16 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   double (*attack_ret)(double, double) = NULL;
   double (*release_ret)(double, double) = NULL;
 
-  switch (options[2].value.intv) {
-  case 0:
+  if (options[2].value.floatv == 0.0)
     attack_ret = linear_attack;
-    break;
-  case 1:
+  else
     attack_ret = exponential_attack;
-    break;
-  default:
-    fprintf(stderr, "unknown attack type: %d\n", options[2].value.intv);
-    return 1;
-  }
 
-  switch (options[5].value.intv) {
-  case 0:
+  if (options[5].value.floatv == 0.0)
     release_ret = linear_release;
-    break;
-  case 1:
+  else
     release_ret = exponential_release;
-    break;
-  default:
-    fprintf(stderr, "unknown attack type: %d\n", options[5].value.intv);
-    return 1;
-  }
+  
   uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
   int16_t *pcm = calloc(tnb_samples, sizeof(int16_t));
   if (pcm == NULL){
@@ -115,9 +104,6 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     case DSOPTION_FLOAT:
       printf("%f", ctx->value.floatv);
       break;
-    case DSOPTION_INT:
-      printf("%d", ctx->value.intv);
-      break;
     case DSOPTION_STRING:
       printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
       break;
@@ -127,7 +113,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   pcm_ctx->play_end = staff->value.staff.nb_samples;
   pcm_ctx->nb_samples = tnb_samples;
   pcm_ctx->pcm = pcm;
-  free_string_options();
+  reset_options_to_default();
   return 0;
 }
 

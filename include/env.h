@@ -125,10 +125,9 @@ struct nr_t {
 typedef struct synth_option_t synth_option_t;
 typedef struct synth_option_t filter_option_t;
 struct synth_option_t {
-  char *option_name;
+  char *option_name, is_strv;
   uint32_t line, column;
   union {
-    int intv;
     float floatv;
     char *strv;
   };

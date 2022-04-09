@@ -466,9 +466,9 @@ append:
         tok = read_next_tok(d);
         switch (tok) {
         case TOK_FLOAT:
-          pcm16_tail->SYNTH.options[nb_options - 1].intv = (int)tok_num;
+        //  pcm16_tail->SYNTH.options[nb_options - 1].intv = (int)tok_num;
           pcm16_tail->SYNTH.options[nb_options - 1].floatv = tok_num;
-          pcm16_tail->SYNTH.options[nb_options - 1].strv = NULL;
+          pcm16_tail->SYNTH.options[nb_options - 1].is_strv = 0;
           printf("Driver num %f\n", tok_num);
           tok = read_next_tok(d);
           break;
@@ -482,6 +482,7 @@ append:
           tok = read_next_tok(d);
           expecting = TOK_NULL;
           pcm16_tail->SYNTH.options[nb_options - 1].strv = tok_identifier;
+          pcm16_tail->SYNTH.options[nb_options - 1].is_strv = 1;
           printf("Driver num %s\n", tok_identifier);
           tok_identifier = NULL;
           tok = read_next_tok(d);
@@ -541,8 +542,7 @@ append:
     pcm16_tail->MIX.column = column_token_found;
     pcm16_tail->MIX.nb_pcm16 = 0;
     pcm16_tail->MIX.pcm16 = NULL;
-    int nb_pcm16s = 0;
-    pcm16_t **pcm16s = NULL;
+    //pcm16_t **pcm16s = NULL;
 
     do {
       tok = read_next_tok(d);
@@ -551,17 +551,18 @@ append:
         destroy_pcm16_t(pcm16_head);
         return NULL;
       }
-      nb_pcm16s++;
-      pcm16s = realloc(pcm16s, sizeof(pcm16_t *) * nb_pcm16s);
-      assert(pcm16s != NULL);
-      pcm16s[nb_pcm16s - 1] = malloc(sizeof(pcm16_t));
-      assert(pcm16s[nb_pcm16s - 1] != NULL);
-      pcm16s[nb_pcm16s - 1]->next = NULL;
+      pcm16_tail->MIX.nb_pcm16++;
+      pcm16_tail->MIX.pcm16 = realloc(pcm16_tail->MIX.pcm16, sizeof(pcm16_t *) * pcm16_tail->MIX.nb_pcm16);
+      assert(pcm16_tail->MIX.pcm16 != NULL);
+      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] = malloc(sizeof(pcm16_t));
+      assert(pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] != NULL);
+      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1]->pcm = NULL;
+      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1]->next = NULL;
 
       prev_pcm16h[nb_calls] = pcm16_head;
       prev_pcm16t[nb_calls] = pcm16_tail;
-      pcm16_head = pcm16s[nb_pcm16s - 1];
-      pcm16_tail = pcm16s[nb_pcm16s - 1];
+      pcm16_head = pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1];
+      pcm16_tail = pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1];
       calls[nb_calls] = MIX;
       nb_calls++;
       tok_identifier = NULL;
@@ -571,7 +572,7 @@ append:
       nb_calls--;
       /* Restore this function arguments */
       pcm16_tail = prev_pcm16t[nb_calls];
-      pcm16s[nb_pcm16s - 1] = pcm16_head;
+      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] = pcm16_head;
       pcm16_head = prev_pcm16h[nb_calls];
 
       if (tok != TOK_RPAREN) {
@@ -586,8 +587,8 @@ append:
       destroy_pcm16_t(pcm16_head);
       return NULL;
     }
-    pcm16_tail->MIX.pcm16 = pcm16s;
-    pcm16_tail->MIX.nb_pcm16 = nb_pcm16s;
+    pcm16_tail->MIX.pcm16 = pcm16_tail->MIX.pcm16;
+    //pcm16_tail->MIX.nb_pcm16 = pcm16_tail->MIX.nb_pcm16_tail->MIX.pcm16;
     tok = read_next_tok(d);
 
     // printf("read %s\n", token_t_to_str(tok));
@@ -633,6 +634,7 @@ append:
     pcm16_tail->FILTER.pcm16_column = column_token_found;
     pcm16_tail->FILTER.pcm16_arg = malloc(sizeof(pcm16_t));
     assert(pcm16_tail->FILTER.pcm16_arg != NULL);
+    pcm16_tail->FILTER.pcm16_arg->pcm = NULL;
     pcm16_tail->FILTER.pcm16_arg->next = NULL;
 
     /* Push current state to stack */
@@ -642,13 +644,9 @@ append:
     /* arguments */
     pcm16_head = pcm16_tail->FILTER.pcm16_arg;
     pcm16_tail = pcm16_tail->FILTER.pcm16_arg;
-    //    if (!setjmp(calls[nb_calls])) {
-    //      nb_calls++;
-    //      tok_identifier = NULL;
-    //      goto append;
-    //    }
     calls[nb_calls] = FILTER;
     nb_calls++;
+
     tok_identifier = NULL;
     /* call the function */
     goto append;
@@ -659,8 +657,6 @@ append:
     pcm16_tail->FILTER.pcm16_arg = pcm16_head;
     assert(pcm16_head != NULL);
     pcm16_head = prev_pcm16h[nb_calls];
-    // parse_pcm16_tail(
-    // pcm16_tail->FILTER.pcm16_arg, pcm16_tail->FILTER.pcm16_arg);
 
     if (pcm16_tail->FILTER.pcm16_arg == NULL) {
       destroy_pcm16_t(pcm16_head);
@@ -698,9 +694,9 @@ append:
         tok = read_next_tok(d);
         switch (tok) {
         case TOK_FLOAT:
-          pcm16_tail->FILTER.options[nb_options - 1].intv = (int)tok_num;
+          //pcm16_tail->FILTER.options[nb_options - 1].intv = (int)tok_num;
           pcm16_tail->FILTER.options[nb_options - 1].floatv = tok_num;
-          pcm16_tail->FILTER.options[nb_options - 1].strv = NULL;
+          pcm16_tail->FILTER.options[nb_options - 1].is_strv = 0;
           printf("Driver num %f\n", tok_num);
           tok = read_next_tok(d);
           break;
@@ -714,6 +710,7 @@ append:
           tok = read_next_tok(d);
           expecting = TOK_NULL;
           pcm16_tail->FILTER.options[nb_options - 1].strv = tok_identifier;
+          pcm16_tail->FILTER.options[nb_options - 1].is_strv = 1;
           printf("Driver num %s\n", tok_identifier);
           tok_identifier = NULL;
           tok = read_next_tok(d);
@@ -745,6 +742,16 @@ append:
   } break;
   default:
     UNEXPECTED(tok, d);
+    /* print stack */
+    for (int i = 0; i < nb_calls; i++){
+    switch (calls[i]) {
+    case FILTER:
+      printf("[debug] stack #%d filter\n", i); break;
+    case MIX:
+      printf("[debug] stack #%d mix\n", i); break;
+    }
+
+    }
     destroy_pcm16_t(pcm16_head);
     return NULL;
   }
@@ -755,7 +762,6 @@ append:
     case MIX:
       goto MIX;
     }
-    // longjmp(calls[nb_calls - 1], 1);
   }
   return pcm16_head;
 }
@@ -844,7 +850,7 @@ static int parse_stmt() {
     write->type = TOK_WRITE;
     write->line = line_token_found;
     write->column = column_token_found;
-    //write->value.write.nb_samples = 0;
+    // write->value.write.nb_samples = 0;
     write->value.write.out_file = tok_identifier;
     tok_identifier = NULL;
     write->value.write.pcm = NULL;

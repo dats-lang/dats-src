@@ -12,12 +12,14 @@ int exec_write(dats_t *dats) {
     if (fp == NULL) {
       perror(n->value.write.out_file);
       return 1;
-    } 
-    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL; pcm16 = pcm16->next)
+    }
+    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
+         pcm16 = pcm16->next)
       gen_pcm16(dats, pcm16);
     uint32_t tnb_samples = 0;
-    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL; pcm16 = pcm16->next){
-      if (pcm16->next != NULL){
+    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
+         pcm16 = pcm16->next) {
+      if (pcm16->next != NULL) {
         tnb_samples += pcm16->play_end;
       } else
         tnb_samples += pcm16->nb_samples;
@@ -33,10 +35,12 @@ int exec_write(dats_t *dats) {
         .BitsPerSample = 16,
     };
     wav_write_header(&wav);
-    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL; pcm16 = pcm16->next){
+    for (pcm16_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
+         pcm16 = pcm16->next) {
       if (pcm16->next != NULL)
-      fwrite(pcm16->pcm, sizeof(int16_t), pcm16->play_end, fp);
-      else fwrite(pcm16->pcm, sizeof(int16_t), pcm16->nb_samples, fp);
+        fwrite(pcm16->pcm, sizeof(int16_t), pcm16->play_end, fp);
+      else
+        fwrite(pcm16->pcm, sizeof(int16_t), pcm16->nb_samples, fp);
     }
     fclose(fp);
   }
