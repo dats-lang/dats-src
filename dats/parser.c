@@ -387,6 +387,12 @@ append:
   }
 
   tok = read_next_tok(d);
+  if (tok == TOK_FLOAT){
+    pcm16_tail->gain = tok_num;
+    tok = read_next_tok(d);
+  } else
+    pcm16_tail->gain = 1.0;
+ 
   switch (tok) {
   case TOK_SYNTH: {
     tok = read_next_tok(d);

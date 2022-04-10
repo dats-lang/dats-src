@@ -1,5 +1,5 @@
 /* The author disclaims copyright to this source code, and
- * puts it under public domain.
+ * releases it under public domain.
  */
 
 #include "wav.h"

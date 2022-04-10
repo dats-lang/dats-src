@@ -342,9 +342,9 @@ staff m3 {
 }
 
 main {
-  pcm16 tr1 = mix((filter.reverb((synth.sin(m1)[
-    vibrato_frequency=8, vibrato_magnitude=3]))),
-    (mix((synth.square(m2)),(synth.sin(m2)))));
+  pcm16 tr1 = mix((0.5 filter.reverb(synth.sin(m1)[
+    vibrato_frequency=8, vibrato_magnitude=3])),
+    (mix((0.4 synth.square(m2)),(0.4 synth.sin(m2)))));
   write("t.wav", tr1);
 
 }

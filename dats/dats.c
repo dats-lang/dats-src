@@ -59,8 +59,8 @@ int process_args(const int argc, char *const *argv) {
           printf("Dats interpreter Draft-2.0.0 ");
           putchar('(');
       {   int i = 0;
-          while (i!=____git_refs_heads_parser_0_1_0_len-1)
-          putchar(____git_refs_heads_parser_0_1_0[i++]);
+          while (i!=____git_refs_heads_master_len-1)
+          putchar(____git_refs_heads_master[i++]);
 #ifdef DUMMY_COMMIT
           printf("-dummy");
 #endif

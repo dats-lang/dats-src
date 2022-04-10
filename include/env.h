@@ -104,13 +104,13 @@ struct note_t {
   note_t *next; /* a dyad or a chord maybe? */
 };
 
+typedef struct bnr_t bnr_t;
 typedef struct nr_t nr_t; /* list of notes and rests with properties */
 struct nr_t {
   music_symbol type;
   union {
     struct {
-      uint8_t block_id, block_repeat;
-      nr_t *block;
+      bnr_t *block;
     };
 
     struct {
@@ -120,6 +120,12 @@ struct nr_t {
     };
   };
   nr_t *next;
+};
+
+struct bnr_t {
+  uint32_t nb_samples;
+  uint8_t block_id, block_repeat;
+  nr_t *block;
 };
 
 typedef struct synth_option_t synth_option_t;
@@ -191,7 +197,8 @@ struct symrec_t {
     struct {
       char *identifier;
       nr_t *nr;
-      uint32_t nb_samples;
+      bnr_t *bnr;
+      uint32_t nb_samples; // with the repeat
     } staff; /* staff variables */
 
     struct {

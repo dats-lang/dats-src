@@ -38,7 +38,7 @@ dats :$(OBJ)
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 version.h:
-	xxd -i ../.git/refs/heads/parser-0.1.0 > version.h
+	xxd -i ../.git/refs/heads/master > version.h
 	xxd -i ../.git/HEAD >> version.h
 
 $(OBJ) :%.o:%.c $(wildcard *.h) version.h

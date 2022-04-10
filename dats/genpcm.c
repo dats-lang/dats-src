@@ -27,7 +27,7 @@
 #include <stdlib.h>
 
 extern symrec_t *getsym(dats_t *, char *);
-extern void mix16(int16_t *, int16_t *, uint32_t);
+extern void memmix16(int16_t *, int16_t *, float, uint32_t);
 
 int gen_pcm16(dats_t *dats, pcm16_t *ctx) {
   if (ctx->pcm != NULL) {
@@ -46,7 +46,8 @@ int gen_pcm16(dats_t *dats, pcm16_t *ctx) {
       while (synth_ctx->options[ctr].option_name != NULL) {
         if (!strcmp(ctx->SYNTH.options[op].option_name,
                     synth_ctx->options[ctr].option_name)) {
-         printf("option found %s %d\n", ctx->SYNTH.options[op].option_name, op);
+          printf("option found %s %d\n", ctx->SYNTH.options[op].option_name,
+                 op);
           switch (synth_ctx->options[ctr].type) {
           case DSOPTION_FLOAT:
             printf("float %f\n", ctx->SYNTH.options[op].floatv);
@@ -84,7 +85,7 @@ int gen_pcm16(dats_t *dats, pcm16_t *ctx) {
     pcm16_t *src = getsym(dats, ctx->ID.id)->value.pcm16.pcm;
     if (src->pcm == NULL)
       gen_pcm16(dats, src);
-    ctx->pcm = malloc(src->nb_samples*sizeof(int16_t));
+    ctx->pcm = malloc(src->nb_samples * sizeof(int16_t));
     assert(ctx->pcm != NULL);
     memcpy(ctx->pcm, src->pcm, src->nb_samples * sizeof(int16_t));
     ctx->nb_samples = src->nb_samples;
@@ -98,28 +99,28 @@ int gen_pcm16(dats_t *dats, pcm16_t *ctx) {
           gen_pcm16(dats, src);
 
     {
-    uint32_t anb_samples = 0, bnb_samples = 0;
-    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++){
-      for (pcm16_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next)
-        anb_samples += src->nb_samples;
-      if (anb_samples > bnb_samples)
-        bnb_samples = anb_samples;
-      anb_samples = 0;
+      uint32_t anb_samples = 0, bnb_samples = 0;
+      for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++) {
+        for (pcm16_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next)
+          anb_samples += src->nb_samples;
+        if (anb_samples > bnb_samples)
+          bnb_samples = anb_samples;
+        anb_samples = 0;
+      }
+      ctx->pcm = calloc(bnb_samples, sizeof(int16_t));
+      ctx->nb_samples = bnb_samples;
+      assert(ctx->pcm != NULL);
     }
-    ctx->pcm = calloc(bnb_samples, sizeof(int16_t));
-    ctx->nb_samples = bnb_samples;
-    assert(ctx->pcm != NULL);
-    }
-    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++){
-    uint32_t look = 0;
-      for (pcm16_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next){
-        mix16(ctx->pcm + look, src->pcm, src->nb_samples);
+    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++) {
+      uint32_t look = 0;
+      for (pcm16_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next) {
+        memmix16(ctx->pcm + look, src->pcm, src->gain, src->nb_samples);
         look += src->play_end;
         if (i == ctx->MIX.nb_pcm16 - 1 && src->next == NULL)
           ctx->play_end = src->play_end;
       }
     }
-   break;
+    break;
   default:
     return 1;
   }

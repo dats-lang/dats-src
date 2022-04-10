@@ -19,20 +19,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
 
-static float reduction(float k1, float k2){
-  return 1.0;
- // return (k1+k2)*pow(10.0, (fabsf(k1+k2)/3.0)-1.0);
+void memmix16(int16_t *dst, int16_t *src, float gain, uint32_t nb_samples) {
+  for (uint32_t n = 0; n < nb_samples; n++) {
+    // dst[n] += (int16_t)((float)src[n] * pow(gain, 2.0f));
+    dst[n] += (int16_t)((float)src[n] * pow(M_E, (gain - 1.0) * 4.0f));
+  }
 }
 
-void mix16(int16_t *dst, int16_t *src, uint32_t nb_samples) {
- for (uint32_t n = 0; n < nb_samples; n++){
-   /* This might be slow */
-   float k1 = (float)src[n]/(float)INT16_MAX;
-   float k2 = (float)dst[n]/(float)INT16_MAX;
-   dst[n] = (int16_t)(reduction(k1, k2)*(k1+k2)*(float)INT16_MAX);
- }
+int16_t mix16(int16_t a, int16_t b, float gain) {
+  /* This might be slow */
+  return a + (int16_t)((float)b * pow(M_E, (gain - 1.0) * 4.0f));
 }

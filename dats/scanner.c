@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+//#include <sys/ioctl.h>
 #define DEFINE_SCANNER_VARIABLES
 #include "scanner.h"
 
@@ -160,25 +161,13 @@ void print_debugging_info(const token_t tok, dats_t *d) {
   default:
     ERROR("\n");
   }
-  char buff[1000] = {0};
-  if (d->scan_line[strlen(d->scan_line) - 1] != '\n') {
-    int ls = strlen(d->scan_line);
-    d->scan_line[ls] = '\n';
-    d->scan_line[ls + 1] = 0;
-  }
-  if (d->scan_line[strlen(d->scan_line) - 2] == '\r') {
-    int ls = strlen(d->scan_line);
-    memcpy(d->scan_line + (ls - 2), d->scan_line + (ls - 1), 2);
-  }
 
-  int length = sprintf(buff, "    %d | %s", line_token_found, d->scan_line);
-  ERROR("%s", buff);
-  ERROR("%*s\n", column_token_found + (length - (int)strlen(d->scan_line)),
-        "^");
+  print_scan_line(d->fp, line_token_found, column_token_found);
 }
 
 void print_scan_line(FILE *fp, const uint32_t line, const uint32_t column) {
   char buff[1000] = {0};
+  long look = ftell(fp);
   rewind(fp);
   size_t num_line = 0;
   int c = 0;
@@ -206,6 +195,7 @@ void print_scan_line(FILE *fp, const uint32_t line, const uint32_t column) {
   int length = sprintf(buff, "    %d | %s", line, scan_line);
   ERROR("%s", buff);
   ERROR("%*s\n", column + (length - (int)strlen(scan_line)), "^");
+  fseek(fp, look, SEEK_SET);
 }
 
 int fpeekc(FILE *fp) {
@@ -327,7 +317,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -441,9 +431,9 @@ w:
         print_scan_line(d->fp, line_token_found, column_token_found);
         return TOK_ERR;
 
-      } /*
+      }
      else if (!strcmp ("repeat", buff))
-       return TOK_REPEAT;*/
+       return TOK_REPEAT;
       else if (!strcmp("pcm16", buff))
         return TOK_PCM16;
       else if (!strcmp("bpm", buff))
@@ -478,7 +468,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -768,7 +758,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -874,9 +864,9 @@ w:
         print_debugging_info(TOK_NULL, d);
         return TOK_ERR;
 
-      } /*
+      }
      else if (!strcmp ("repeat", buff))
-       return TOK_REPEAT;*/
+       return TOK_REPEAT;
       else if (!strcmp("pcm16", buff))
         return TOK_PCM16;
       else if (buff[0] == 'n' && !buff[1])
@@ -916,7 +906,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -1078,6 +1068,8 @@ const char *token_t_to_str(const token_t t) {
     return "staff";
   case TOK_IDENTIFIER:
     return "identifier";
+  case TOK_REPEAT:
+    return "repeat";
   case TOK_BPM:
     return "bpm";
   case TOK_ATTACK:

@@ -41,7 +41,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
           wavetable[i] = rand();
         int16_t prev = 0;
         uint32_t cur = 0;
-        for (uint32_t i = 0; i < nn->duration; i++) {
+        for (uint32_t i = 0; i < nn->duration + 1024; i++) {
           wavetable[cur] = ((wavetable[cur]/2) + (prev / 2));
           pcm[total + i] +=
               (int16_t)
@@ -81,7 +81,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   }
   pcm_ctx->pcm = pcm;
   pcm_ctx->nb_samples = tnb_samples;
-  pcm_ctx->play_end = tnb_samples;
+  pcm_ctx->play_end = staff->value.staff.nb_samples;
   reset_options_to_default();
   return 0;
 }
