@@ -181,13 +181,18 @@ n 16 , a#3;
 n 4, g#3;
 }
 
+staff pizza{
+n 3, cb1;
+r 2;
+}
 	
 main {
 /* multi line **
    ***
    hh */
   /* pcm16 tmp1 = synth.kpa(apple);*/
-   pcm16 track1 = synth.kpa(apple);
-    write("t.wav", track1); 
+   pcm16 track1 = synth.kpa(appale), track1;
+   pcm16 kd = filter.lk(synth.kpdqa(sapple));
+   /* write("t.wav", track1); */
 }
 

@@ -91,6 +91,26 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
   }
 }
 
+void clean_bnr(bnr_t *bnr) {
+  nr_t *tnr;
+  for (nr_t *nr = bnr->nr; nr != NULL; nr = tnr) {
+    tnr = nr->next;
+    switch (nr->type) {
+    case SYM_NOTE: {
+      note_t *tnote;
+      for (note_t *note = nr->note; note != NULL; note = tnote) {
+        tnote = note->next;
+        free(note);
+      }
+    } break;
+    case SYM_BLOCK:
+      clean_bnr(nr->block);
+      break;
+    }
+    free(nr);
+  }
+}
+
 void clean_all_symrec_t_all_dats_t() {
   for (dats_t *d = dats_files; d != NULL; d = d->next) {
     symrec_t *n;
@@ -99,19 +119,20 @@ void clean_all_symrec_t_all_dats_t() {
       switch (p->type) {
       case TOK_STAFF: {
         free(p->value.staff.identifier);
-        nr_t *tmp;
-        for (nr_t *nr = p->value.staff.nr; nr != NULL; nr = tmp) {
-          tmp = nr->next;
-          if (nr->type == SYM_NOTE && nr != NULL) {
-            note_t *nntmp;
-            for (note_t *ntmp = nr->note; ntmp != NULL;) {
-              nntmp = ntmp->next;
-              free(ntmp);
-              ntmp = nntmp;
-            }
-          }
-          free(nr);
-        }
+        clean_bnr(p->value.staff.bnr); /*
+         bnr_t *tmp;
+         for (bnr_t *nr = p->value.staff.bnr; nr != NULL; bnr = tmp) {
+           tmp = nr->next;
+           if (nr->type == SYM_NOTE && nr != NULL) {
+             note_t *nntmp;
+             for (note_t *ntmp = nr->note; ntmp != NULL;) {
+               nntmp = ntmp->next;
+               free(ntmp);
+               ntmp = nntmp;
+             }
+           }
+           free(nr);
+         }*/
       } break;
       case TOK_PCM16:
         free(p->value.pcm16.identifier);
@@ -317,7 +338,7 @@ w:
     c = '/';
   }
   switch (c) {
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -431,9 +452,8 @@ w:
         print_scan_line(d->fp, line_token_found, column_token_found);
         return TOK_ERR;
 
-      }
-     else if (!strcmp ("repeat", buff))
-       return TOK_REPEAT;
+      } else if (!strcmp("repeat", buff))
+        return TOK_REPEAT;
       else if (!strcmp("pcm16", buff))
         return TOK_PCM16;
       else if (!strcmp("bpm", buff))
@@ -468,7 +488,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -758,7 +778,7 @@ w:
     c = '/';
   }
   switch (c) {
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -864,9 +884,8 @@ w:
         print_debugging_info(TOK_NULL, d);
         return TOK_ERR;
 
-      }
-     else if (!strcmp ("repeat", buff))
-       return TOK_REPEAT;
+      } else if (!strcmp("repeat", buff))
+        return TOK_REPEAT;
       else if (!strcmp("pcm16", buff))
         return TOK_PCM16;
       else if (buff[0] == 'n' && !buff[1])
@@ -906,7 +925,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':

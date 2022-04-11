@@ -115,8 +115,8 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
       print_scan_line(d->fp, pcm16->line, pcm16->column);
     }
     for (size_t i = 0; i < pcm16_cur->SYNTH.nb_options; i++) {
-      for (DSOption *options = driver->options; options->option_name != NULL;
-           options++) {
+      DSOption *options = NULL;
+      for (options = driver->options; options->option_name != NULL; options++) {
         if (!strcmp(options->option_name,
                     pcm16_cur->SYNTH.options[i].option_name)) {
           goto found;
@@ -126,7 +126,21 @@ int semantic_pcm16_t(dats_t *d, symrec_t *sym, pcm16_t *pcm16_cur) {
                pcm16_cur->SYNTH.options[i].column,
                "No synth options named, '%s'\n",
                pcm16_cur->SYNTH.options[i].option_name);
+      continue;
     found : {}
+      if (pcm16_cur->SYNTH.options[i].is_strv &&
+          options->type == DSOPTION_FLOAT) {
+        SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
+                 pcm16_cur->SYNTH.options[i].column,
+                 "Option, '%s', requires value\n",
+                 pcm16_cur->SYNTH.options[i].option_name);
+      } else if (!pcm16_cur->SYNTH.options[i].is_strv &&
+                 options->type == DSOPTION_STRING) {
+        SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
+                 pcm16_cur->SYNTH.options[i].column,
+                 "Option, '%s', requires string\n",
+                 pcm16_cur->SYNTH.options[i].option_name);
+      }
     }
     //    printf("Synth %s found\n", tok_identifier);
     //    free(tok_identifier);

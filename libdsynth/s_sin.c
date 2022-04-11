@@ -4,6 +4,7 @@
 
 #include "synth.h"
 #include "log.h"
+#include "utils.h"
 
 /* clang-format off */
 static DSOption options[] = {
@@ -44,10 +45,35 @@ static double exponential_attack(double x, double n) { return pow(M_E, x - n); }
 static double exponential_release(double x, double n) {
   return pow(M_E, (-x - n) + 1.0);
 }
+
+double (*attack_ret)(double, double) = NULL;
+double (*release_ret)(double, double) = NULL;
+
+static void write_note(int16_t *pcm, void *args, note_t*note, uint32_t seek_pcm){
+        for (uint32_t i = 0; i < note->duration; i++) {
+          double sample1 =
+              ((double)note->volume *
+               sin(2.0 * M_PI *
+                   (note->frequency + sin(2.0 * M_PI * options[0].value.floatv *
+                                        (double)i / 44100.0) *
+                                        options[1].value.floatv) *
+                   (double)i / 44100.0));
+
+          pcm[seek_pcm + i] +=
+              (int16_t)
+              /* simple linear attack and linear decay filter */
+              (double)sample1 *
+              (i < (uint32_t)note->attack
+                   ? attack_ret((double)i, note->attack)
+                   : (i > note->duration - (uint32_t)note->release
+                          ? release_ret(-(double)i + note->duration, note->release)
+                          : 1.0));
+        }
+
+}
+
 static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
 
-  double (*attack_ret)(double, double) = NULL;
-  double (*release_ret)(double, double) = NULL;
 
   if (options[2].value.floatv == 0.0)
     attack_ret = linear_attack;
@@ -66,38 +92,9 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     return 1;
   }
 
-  uint32_t total = 0;
-  for (nr_t *n = staff->value.staff.nr; n != NULL; n = n->next) {
-    if (n->type == SYM_NOTE) {
-      for (note_t *nn = n->note; nn != NULL; nn = nn->next) {
-        for (uint32_t i = 0; i < nn->duration; i++) {
-          double sample1 =
-              ((double)nn->volume *
-               sin(2.0 * M_PI *
-                   (nn->frequency + sin(2.0 * M_PI * options[0].value.floatv *
-                                        (double)i / 44100.0) *
-                                        options[1].value.floatv) *
-                   (double)i / 44100.0));
 
-          pcm[total + i] +=
-              (int16_t)
-              /* simple linear attack and linear decay filter */
-              (double)sample1 *
-              (i < (uint32_t)nn->attack
-                   ? attack_ret((double)i, nn->attack)
-                   : (i > nn->duration - (uint32_t)nn->release
-                          ? release_ret(-(double)i + nn->duration, nn->release)
-                          : 1.0));
-        }
-      }
-    }
-    total += n->length;
-    if ((total % 44100) < 1000) {
-      printf("\r[s_sin] %d/%d", total, staff->value.staff.nb_samples);
-      fflush(stdout);
-    }
-  }
-  putchar('\n');
+  write_block(pcm, NULL, staff->value.staff.bnr, write_note);
+
   for (DSOption *ctx = options; ctx->option_name != NULL; ctx++) {
     printf("[s_sin] %s ", ctx->option_name);
     switch (ctx->type) {

@@ -21,7 +21,6 @@
 
 #include <assert.h>
 #include <math.h>
-#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,8 +36,16 @@ static symrec_t *staff;
 static int rule_match = 0;
 static dats_t *d;
 
+#define MAX_BLOCK                                                              \
+  42 /* The answer to life, universe and                                       \
+      * everything.                                                            \
+      */
 /* Returns 0 if success. Non-zero if failed. */
-static int parse_notes_rests() {
+static int parse_notes_rests(bnr_t *blk) {
+  static int nb_blk = 0;
+  static bnr_t *prev_blk[MAX_BLOCK] = {0};
+
+add_block:
   if (tok == TOK_N) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
@@ -72,7 +79,7 @@ static int parse_notes_rests() {
       UNEXPECTED(tok, d);
       return 1;
     }
-    staff->value.staff.nb_samples += cnr->length;
+    blk->nb_samples += cnr->length;
     tok = read_next_tok(d);
 
     note_t *n = malloc(sizeof(note_t));
@@ -121,8 +128,8 @@ static int parse_notes_rests() {
     f->next = NULL;
     cnr->note = n;
 
-    if (staff->value.staff.nr != NULL) {
-      for (nr_t *p = staff->value.staff.nr; 1; p = p->next) {
+    if (blk->nr != NULL) {
+      for (nr_t *p = blk->nr; 1; p = p->next) {
         if (p->next == NULL) {
           p->next = cnr;
           cnr->next = NULL;
@@ -130,8 +137,13 @@ static int parse_notes_rests() {
         }
       }
     } else
-      staff->value.staff.nr = cnr;
+      blk->nr = cnr;
     rule_match = 1;
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
   } else if (tok == TOK_R) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
@@ -159,18 +171,24 @@ static int parse_notes_rests() {
       goto add_lengthr;
     default:;
     }
-    staff->value.staff.nb_samples += cnr->length;
+    // staff->value.staff.nb_samples += cnr->length;
+    blk->nb_samples += cnr->length;
 
-    if (staff->value.staff.nr != NULL)
-      for (nr_t *p = staff->value.staff.nr; 1; p = p->next) {
+    if (blk->nr != NULL)
+      for (nr_t *p = blk->nr; 1; p = p->next) {
         if (p->next == NULL) {
           p->next = cnr;
           break;
         }
       }
     else
-      staff->value.staff.nr = cnr;
+      blk->nr = cnr;
     rule_match = 1;
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
   } else if (tok == TOK_BPM) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -190,6 +208,11 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
   } else if (tok == TOK_VOLUME) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -204,6 +227,11 @@ static int parse_notes_rests() {
     tok_volume = (int)tok_num;
     rule_match = 1;
     tok = read_next_tok(d);
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
 
   } else if (tok == TOK_ATTACK) {
     tok = read_next_tok(d);
@@ -220,6 +248,11 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
   } else if (tok == TOK_DECAY) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -235,6 +268,11 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
   } else if (tok == TOK_SUSTAIN) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -249,6 +287,11 @@ static int parse_notes_rests() {
     tok_sustain = tok_num;
     rule_match = 1;
     tok = read_next_tok(d);
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
 
   } else if (tok == TOK_OCTAVE) {
     tok = read_next_tok(d);
@@ -269,6 +312,11 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
   } else if (tok == TOK_SEMITONE) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -288,6 +336,11 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
   } else if (tok == TOK_RELEASE) {
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -303,14 +356,66 @@ static int parse_notes_rests() {
     rule_match = 1;
     tok = read_next_tok(d);
 
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+
+  } else if (tok == TOK_REPEAT) {
+    tok = read_next_tok(d);
+    if (tok != TOK_FLOAT) {
+      EXPECTING(TOK_FLOAT, d);
+      return 1;
+    }
+
+    tok = read_next_tok(d);
+    if (tok != TOK_LCURLY_BRACE) {
+      EXPECTING(TOK_LCURLY_BRACE, d);
+      return 1;
+    }
+
+    bnr_t *block = malloc(sizeof(bnr_t));
+    assert(block != NULL);
+    block->block_repeat = (uint8_t)tok_num;
+    block->nb_samples = 0;
+    block->nr = NULL;
+    prev_blk[nb_blk] = blk;
+    nb_blk++;
+
+    nr_t *cnr = malloc(sizeof(nr_t));
+    assert(cnr != NULL);
+    cnr->type = SYM_BLOCK;
+    cnr->block = block;
+    cnr->next = NULL;
+
+    if (blk->nr != NULL)
+      for (nr_t *p = blk->nr; 1; p = p->next) {
+        if (p->next == NULL) {
+          p->next = cnr;
+          break;
+        }
+      }
+    else
+      blk->nr = cnr;
+
+    blk = block;
+    tok = read_next_tok(d);
+    goto add_block;
+
+  end_block:
+    nb_blk--;
+    prev_blk[nb_blk]->nb_samples +=
+        (uint32_t)(blk->block_repeat + 1) * blk->nb_samples;
+    blk = prev_blk[nb_blk];
+
   } else
     return 0;
 
-  if (tok != TOK_SEMICOLON) {
-    UNEXPECTED(tok, d);
-    return 1;
-  }
   tok = read_next_tok(d);
+  if (nb_blk != 0 && tok == TOK_RCURLY_BRACE)
+    goto end_block;
+  if (nb_blk != 0)
+    goto add_block;
   return 0;
 }
 
@@ -338,9 +443,17 @@ static int parse_staff() {
   staff->value.staff.identifier = tok_identifier;
   tok_identifier = NULL;
   staff->value.staff.nb_samples = 0;
-  staff->value.staff.nr = NULL;
+  staff->value.staff.bnr = NULL;
   staff->next = d->sym_table;
   d->sym_table = staff;
+
+  bnr_t *block = malloc(sizeof(bnr_t));
+  assert(block != NULL);
+  block->block_repeat = 0;
+  block->nb_samples = 0;
+  block->nr = NULL;
+
+  staff->value.staff.bnr = block;
 
   tok = read_next_tok(d);
   if (tok != TOK_LCURLY_BRACE) {
@@ -351,9 +464,12 @@ static int parse_staff() {
   tok = read_next_tok(d);
   do {
     rule_match = 0;
-    if (parse_notes_rests())
+    if (parse_notes_rests(block))
       return 1;
   } while (rule_match);
+
+  staff->value.staff.nb_samples =
+      (uint32_t)(block->block_repeat + 1) * block->nb_samples;
 
   if (tok != TOK_RCURLY_BRACE) {
     UNEXPECTED(tok, d);
@@ -381,18 +497,16 @@ append:
   if (nb_calls == PARSE_PCM16_MAX_CALLS) {
     C_ERROR(d, "%d maximum calls has reached. Killing self\n",
             PARSE_PCM16_MAX_CALLS);
-    print_quote(1, NULL, NULL);
-    pcm16_head = NULL;
-    // longjmp(calls[nb_calls-1], 1);
+    print_quote(1, NULL, NULL); /* self killed */
   }
 
   tok = read_next_tok(d);
-  if (tok == TOK_FLOAT){
+  if (tok == TOK_FLOAT) {
     pcm16_tail->gain = tok_num;
     tok = read_next_tok(d);
   } else
     pcm16_tail->gain = 1.0;
- 
+
   switch (tok) {
   case TOK_SYNTH: {
     tok = read_next_tok(d);
@@ -472,7 +586,6 @@ append:
         tok = read_next_tok(d);
         switch (tok) {
         case TOK_FLOAT:
-        //  pcm16_tail->SYNTH.options[nb_options - 1].intv = (int)tok_num;
           pcm16_tail->SYNTH.options[nb_options - 1].floatv = tok_num;
           pcm16_tail->SYNTH.options[nb_options - 1].is_strv = 0;
           printf("Driver num %f\n", tok_num);
@@ -548,7 +661,7 @@ append:
     pcm16_tail->MIX.column = column_token_found;
     pcm16_tail->MIX.nb_pcm16 = 0;
     pcm16_tail->MIX.pcm16 = NULL;
-    //pcm16_t **pcm16s = NULL;
+    // pcm16_t **pcm16s = NULL;
 
     do {
       tok = read_next_tok(d);
@@ -558,9 +671,11 @@ append:
         return NULL;
       }
       pcm16_tail->MIX.nb_pcm16++;
-      pcm16_tail->MIX.pcm16 = realloc(pcm16_tail->MIX.pcm16, sizeof(pcm16_t *) * pcm16_tail->MIX.nb_pcm16);
+      pcm16_tail->MIX.pcm16 = realloc(
+          pcm16_tail->MIX.pcm16, sizeof(pcm16_t *) * pcm16_tail->MIX.nb_pcm16);
       assert(pcm16_tail->MIX.pcm16 != NULL);
-      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] = malloc(sizeof(pcm16_t));
+      pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] =
+          malloc(sizeof(pcm16_t));
       assert(pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1] != NULL);
       pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1]->pcm = NULL;
       pcm16_tail->MIX.pcm16[pcm16_tail->MIX.nb_pcm16 - 1]->next = NULL;
@@ -594,10 +709,8 @@ append:
       return NULL;
     }
     pcm16_tail->MIX.pcm16 = pcm16_tail->MIX.pcm16;
-    //pcm16_tail->MIX.nb_pcm16 = pcm16_tail->MIX.nb_pcm16_tail->MIX.pcm16;
     tok = read_next_tok(d);
 
-    // printf("read %s\n", token_t_to_str(tok));
     if (tok == TOK_COMMA) {
       pcm16_tail->next = malloc(sizeof(pcm16_t));
       assert(pcm16_tail != NULL);
@@ -700,7 +813,6 @@ append:
         tok = read_next_tok(d);
         switch (tok) {
         case TOK_FLOAT:
-          //pcm16_tail->FILTER.options[nb_options - 1].intv = (int)tok_num;
           pcm16_tail->FILTER.options[nb_options - 1].floatv = tok_num;
           pcm16_tail->FILTER.options[nb_options - 1].is_strv = 0;
           printf("Driver num %f\n", tok_num);
@@ -749,14 +861,15 @@ append:
   default:
     UNEXPECTED(tok, d);
     /* print stack */
-    for (int i = 0; i < nb_calls; i++){
-    switch (calls[i]) {
-    case FILTER:
-      printf("[debug] stack #%d filter\n", i); break;
-    case MIX:
-      printf("[debug] stack #%d mix\n", i); break;
-    }
-
+    for (int i = 0; i < nb_calls; i++) {
+      switch (calls[i]) {
+      case FILTER:
+        printf("[debug] stack #%d filter\n", i);
+        break;
+      case MIX:
+        printf("[debug] stack #%d mix\n", i);
+        break;
+      }
     }
     destroy_pcm16_t(pcm16_head);
     return NULL;
@@ -843,14 +956,7 @@ static int parse_stmt() {
       return 1;
     }
     expecting = TOK_NULL;
-    /*
-         FILE *fp = fopen(tok_identifier, "wb");
-         if (fp == NULL) {
-           perror(tok_identifier);
-           C_ERROR(d, "ERROR!\n");
-           return 1;
-         }
-    */
+
     symrec_t *write = malloc(sizeof(symrec_t));
     assert(write != NULL);
     write->type = TOK_WRITE;
@@ -884,30 +990,6 @@ static int parse_stmt() {
     }
     if (parse_pcm16_tail(pcm16_head, pcm16_head) == NULL)
       return 1;
-
-    /*
-         symrec_t *pcm16 = parse_pcm16(NULL);
-         if (pcm16 == NULL)
-           return 1;
-         if (pcm16->type != TOK_PCM16) {
-           C_ERROR(d, "Macro, `write`, needs pcm16 variable type\n");
-           return 1;
-         }
-         struct WAV_info wav = {
-             .fp = fp,
-             .Subchunk1Size = 16,
-             .AudioFormat = 1,
-             .NumChannels = 1,
-             .SampleRate = 44100,
-             .NumSamples = pcm16->value.pcm16.total_numsamples,
-             .BitsPerSample = 16,
-         };
-         wav_write_header(&wav);
-         for (pcm16_t *ptmp = pcm16->value.pcm16.pcm; ptmp != NULL;
-              ptmp = ptmp->next)
-           fwrite(ptmp->pcm, sizeof(int16_t), ptmp->numsamples, fp);
-         fclose(fp);
-    */
 
     if (tok != TOK_RPAREN) {
       EXPECTING(TOK_RPAREN, d);

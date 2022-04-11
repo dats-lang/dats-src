@@ -18,7 +18,7 @@ ifeq ($(ENABLE_OPENMP), yes)
 	LDFLAGS += -fopenmp
 endif
 
-MISC = sf2.c allsynth.c
+MISC = sf2.c allsynth.c utils.c
 
 S_SYNTHS += s_kpa.c
 S_SYNTHS += s_sin.c 

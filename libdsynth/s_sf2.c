@@ -11,6 +11,7 @@
 
 #include "synth.h"
 #include "log.h"
+#include "utils.h"
 
 /* clang-format off */
 static DSOption options[] = {
@@ -30,6 +31,14 @@ static void reset_options_to_default(void) {
     }
     free(options[i].value.strv);
   }
+}
+
+void write_note(int16_t* pcm, void *args, note_t*note, uint32_t seek_pcm){
+  /* Play a note */
+  fluid_synth_noteon(args, 0, note->mnkey, 60);
+  fluid_synth_write_s16(args, note->duration, pcm, seek_pcm, 1, pcm, seek_pcm,
+                        1);
+  fluid_synth_noteoff(args, 0, note->mnkey);
 }
 
 static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
@@ -105,23 +114,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     return 1;
   }
 
-  uint32_t total = 0;
-  for (nr_t *n = staff->value.staff.nr; n != NULL; n = n->next) {
-    if (n->type == SYM_NOTE) {
-      for (note_t *nn = n->note; nn != NULL; nn = nn->next) {
-        /* Play a note */
-        fluid_synth_noteon(synth, 0, nn->mnkey, 60);
-        fluid_synth_write_s16(synth, nn->duration, pcm, total, 1, pcm, total,
-                              1);
-        fluid_synth_noteoff(synth, 0, nn->mnkey);
-      }
-    }
-    total += n->length;
-    if ((total % 44100) < 1000) {
-      printf("\r[s_sf2] %d/%d", total, staff->value.staff.nb_samples);
-      fflush(stdout);
-    }
-  }
+  write_block(pcm, synth, staff->value.staff.bnr, write_note);
 
   if (synth) {
     delete_fluid_synth(synth);
@@ -162,7 +155,6 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
          fflush(stdout);
        }
      }*/
-  putchar('\n');
   for (DSOption *ctx = options; ctx->option_name != NULL; ctx++) {
     printf("[s_sf2] %s ", ctx->option_name);
     switch (ctx->type) {

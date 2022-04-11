@@ -46,7 +46,6 @@ int exec_write(dats_t *dats) {
       for (uint32_t n = 0; n < pcm16->nb_samples; n++)
         out_pcm[seek_pcm + n] =
             mix16(out_pcm[seek_pcm + n], pcm16->pcm[n], pcm16->gain);
-      // out_pcm[seek_pcm + n] += (int16_t)((float)pcm16->pcm[n]*pcm16->gain);
       seek_pcm += pcm16->play_end;
     }
     fwrite(out_pcm, sizeof(int16_t), tnb_samples, fp);

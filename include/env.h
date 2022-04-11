@@ -125,7 +125,7 @@ struct nr_t {
 struct bnr_t {
   uint32_t nb_samples;
   uint8_t block_id, block_repeat;
-  nr_t *block;
+  nr_t *nr;
 };
 
 typedef struct synth_option_t synth_option_t;
@@ -196,7 +196,7 @@ struct symrec_t {
   union {
     struct {
       char *identifier;
-      nr_t *nr;
+     // nr_t *nr;
       bnr_t *bnr;
       uint32_t nb_samples; // with the repeat
     } staff; /* staff variables */
