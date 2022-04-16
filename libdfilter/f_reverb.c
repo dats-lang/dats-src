@@ -5,8 +5,9 @@
 
 #include <math.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #include "filter.h"
 #include "log.h"
@@ -30,33 +31,63 @@ static void free_string_options(void) {
   }
 }
 
-static int filter(pcm16_t *pcm_ctx, pcm16_t *const pcm_src) {
-
+static int filter(track_t *pcm_ctx, track_t *const pcm_src) {
 
   // read the data and convert to stereo floating point
   int16_t L, R;
-  sf_snd snd = sf_snd_new(pcm_src->nb_samples, 44100, false);
-  #pragma omp parallel for
-  for (uint32_t i = 0; i < pcm_src->nb_samples; i++) {
-    // read the sample
-    L = pcm_src->pcm[i];
-    R = L; // expand to stereo
+  sf_snd snd;
+  uint32_t nb_samples = 0;
+  switch (pcm_src->track_type) {
+  case 0:
+    nb_samples = pcm_src->mono.nb_samples;
+    snd = sf_snd_new(nb_samples, 44100, false);
+#pragma omp parallel for
+    for (uint32_t i = 0; i < nb_samples; i++) {
+      // read the sample
+      L = pcm_src->mono.pcm[i];
+      R = L; // expand to stereo
 
-    // convert the sample to floating point
-    // notice that int16 samples range from -32768 to 32767, therefore we have a
-    // different divisor depending on whether the value is negative or not
+      // convert the sample to floating point
+      // notice that int16 samples range from -32768 to 32767, therefore we have
+      // a different divisor depending on whether the value is negative or not
 
-    if (L < 0)
-      snd->samples[i].L = (float)L / 32768.0f;
-    else
-      snd->samples[i].L = (float)L / 32767.0f;
-    if (R < 0)
-      snd->samples[i].R = (float)R / 32768.0f;
-    else
-      snd->samples[i].R = (float)R / 32767.0f;
+      if (L < 0)
+        snd->samples[i].L = (float)L / 32768.0f;
+      else
+        snd->samples[i].L = (float)L / 32767.0f;
+      if (R < 0)
+        snd->samples[i].R = (float)R / 32768.0f;
+      else
+        snd->samples[i].R = (float)R / 32767.0f;
+    }
+    break;
+  case 1:
+    nb_samples = (pcm_src->stereo.lnb_samples > pcm_src->stereo.rnb_samples)
+                     ? pcm_src->stereo.lnb_samples
+                     : pcm_src->stereo.rnb_samples;
+    snd = sf_snd_new(nb_samples, 44100, false);
+    for (uint32_t i = 0; i < nb_samples; i++) {
+      // read the sample
+      L = pcm_src->stereo.lpcm[i];
+      R = pcm_src->stereo.rpcm[i];
+
+      // convert the sample to floating point
+      // notice that int16 samples range from -32768 to 32767, therefore we have
+      // a different divisor depending on whether the value is negative or not
+
+      if (L < 0)
+        snd->samples[i].L = (float)L / 32768.0f;
+      else
+        snd->samples[i].L = (float)L / 32767.0f;
+      if (R < 0)
+        snd->samples[i].R = (float)R / 32768.0f;
+      else
+        snd->samples[i].R = (float)R / 32767.0f;
+    }
+    break;
   }
   sf_reverb_preset p = SF_REVERB_PRESET_DEFAULT;
-  sf_snd output_snd = sf_snd_new(pcm_src->nb_samples + 44100, 44100, true);
+  sf_snd output_snd = sf_snd_new(nb_samples + 44100, 44100, true);
   if (output_snd == NULL) {
     DFILTER_LOG("Error: Failed to apply filter\n");
     return 1;
@@ -65,13 +96,13 @@ static int filter(pcm16_t *pcm_ctx, pcm16_t *const pcm_src) {
   // process the reverb in one sweep
   sf_reverb_state_st rv;
   sf_presetreverb(&rv, 44100, p);
-  sf_reverb_process(&rv, pcm_src->nb_samples, snd->samples, output_snd->samples);
+  sf_reverb_process(&rv, nb_samples, snd->samples, output_snd->samples);
 
   // append the tail
   int tailsmp = 44100;
   if (tailsmp > 0) {
-    int pos = pcm_src->nb_samples;
-    sf_sample_st *empty = malloc(sizeof(sf_sample_st)*48000);
+    int pos = nb_samples;
+    sf_sample_st *empty = malloc(sizeof(sf_sample_st) * 48000);
     memset(empty, 0, sizeof(sf_sample_st) * 48000);
     while (tailsmp > 0) {
       if (tailsmp <= 48000) {
@@ -102,16 +133,32 @@ static int filter(pcm16_t *pcm_ctx, pcm16_t *const pcm_src) {
     }
     putchar('\n');
   }
-  pcm_ctx->nb_samples = output_snd->size;
-  pcm_ctx->pcm = malloc(sizeof(int16_t) * output_snd->size);
-  #pragma omp parallel for
-  for (int i = 0; i < output_snd->size; i++) {
-    float R = output_snd->samples[i].R;
-    if (R < 0)
-      pcm_ctx->pcm[i] = (int16_t)(R * 32768.0f);
-    else
-      pcm_ctx->pcm[i] = (int16_t)(R * 32767.0f);
+  switch (pcm_ctx->track_type) {
+  case 0:
+    pcm_ctx->mono.nb_samples = output_snd->size;
+    pcm_ctx->mono.pcm = malloc(sizeof(int16_t) * output_snd->size);
+#pragma omp parallel for
+    for (int i = 0; i < output_snd->size; i++) {
+      float R = output_snd->samples[i].R;
+      if (R < 0)
+        pcm_ctx->mono.pcm[i] = (int16_t)(R * 32768.0f);
+      else
+        pcm_ctx->mono.pcm[i] = (int16_t)(R * 32767.0f);
+    }
+    break;
+  case 1:
+    pcm_ctx->stereo.lnb_samples = output_snd->size;
+    pcm_ctx->stereo.rnb_samples = output_snd->size;
+    pcm_ctx->stereo.lpcm = malloc(sizeof(int16_t) * output_snd->size);
+    pcm_ctx->stereo.rpcm = malloc(sizeof(int16_t) * output_snd->size);
+    assert(pcm_ctx->stereo.lpcm != NULL && pcm_ctx->stereo.rpcm != NULL);
+    for (int i = 0; i < output_snd->size; i++) {
+      pcm_ctx->stereo.lpcm[i] = (int16_t)(output_snd->samples[i].L * 32768.0f);
+      pcm_ctx->stereo.rpcm[i] = (int16_t)(output_snd->samples[i].R * 32767.0f);
+    }
+    break;
   }
+
   free(output_snd->samples);
   free(output_snd);
   free_string_options();

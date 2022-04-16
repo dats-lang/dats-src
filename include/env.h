@@ -31,11 +31,16 @@ enum token_t {
   /* Data types */
   TOK_STAFF,
   // TOK_TRACK,
+  TOK_ATRACK,
   TOK_SYNTH,
   TOK_FILTER,
   TOK_MAIN,
-  TOK_PCM16,
+  TOK_TRACK,
   TOK_FLOAT,
+
+  /* Type specifier*/
+  TOK_MONO,
+  TOK_STEREO,
 
   /* Macros */
   TOK_REPEAT,
@@ -139,12 +144,13 @@ struct synth_option_t {
   };
 };
 
-enum pcm16_type_t { ID, MIX, FILTER, SYNTH };
-typedef enum pcm16_type_t pcm16_type_t;
+enum track_type_t { ID, MIX, FILTER, SYNTH };
+typedef enum track_type_t track_type_t;
 
-typedef struct pcm16_t pcm16_t;
-struct pcm16_t {
-  pcm16_type_t type;
+typedef struct track_t track_t;
+struct track_t {
+  track_type_t type;
+  char track_type; /* 0 mono, 1 stereo */
   union {
     struct {
       char *id;
@@ -152,12 +158,12 @@ struct pcm16_t {
     } ID;
     struct {
       uint32_t nb_pcm16;
-      pcm16_t **pcm16; // an array
+      track_t **pcm16; // an array
       size_t line, column;
     } MIX;
     struct {
       char *filter_name;
-      pcm16_t *pcm16_arg; // a linked list
+      track_t *pcm16_arg; // a linked list
       uint32_t filter_line, filter_column;
       uint32_t pcm16_line, pcm16_column;
       uint16_t nb_options;
@@ -171,8 +177,18 @@ struct pcm16_t {
       synth_option_t *options;
     } SYNTH;
   };
-  int16_t *pcm;
-  uint32_t nb_samples;
+  union {
+    struct {
+      int16_t *pcm;
+      uint32_t nb_samples;
+      uint32_t play_end;
+    }mono;
+    struct {
+      int16_t *lpcm, *rpcm;
+      uint32_t lnb_samples, rnb_samples;
+      uint32_t lplay_end, rplay_end;
+    }stereo;
+  };
   float gain;
 
 /*  A play_end is suppose to mark the end of a playing.
@@ -184,9 +200,8 @@ struct pcm16_t {
  *  play_end is always less than or equal to nb_samples;
  *   play_end <= nb_samples
  */
-  uint32_t play_end;
 
-  pcm16_t *next;
+  track_t *next;
 };
 
 typedef struct symrec_t symrec_t;
@@ -203,7 +218,7 @@ struct symrec_t {
 
     struct {
       char *out_file;
-      pcm16_t *pcm;
+      track_t *pcm;
  //     uint32_t nb_samples;
     } write;
     /* struct
@@ -215,7 +230,7 @@ struct symrec_t {
     struct {
       char *identifier;
       uint32_t nb_samples;
-      pcm16_t *pcm;
+      track_t *pcm;
     } pcm16;
   } value;
 

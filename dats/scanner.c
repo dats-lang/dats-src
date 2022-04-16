@@ -51,11 +51,11 @@ void clean_all_dats_t(void) {
   dats_files = NULL;
 }
 
-void destroy_pcm16_t(pcm16_t *pcm16) {
+void destroy_track_t(track_t *pcm16) {
   if (pcm16 == NULL)
     return;
-  pcm16_t *n;
-  for (pcm16_t *a = pcm16; a != NULL; a = n) {
+  track_t *n;
+  for (track_t *a = pcm16; a != NULL; a = n) {
     n = a->next;
     switch (a->type) {
     case ID:
@@ -63,7 +63,7 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
       break;
     case MIX:
       for (uint32_t i = 0; i < a->MIX.nb_pcm16; i++)
-        destroy_pcm16_t(a->MIX.pcm16[i]);
+        destroy_track_t(a->MIX.pcm16[i]);
       free(a->MIX.pcm16);
       break;
     case FILTER:
@@ -73,7 +73,7 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
         if (a->FILTER.options[i].is_strv)
           free(a->FILTER.options[i].strv);
       }
-      destroy_pcm16_t(a->FILTER.pcm16_arg);
+      destroy_track_t(a->FILTER.pcm16_arg);
       break;
     case SYNTH:
       free(a->SYNTH.synth_name);
@@ -86,7 +86,15 @@ void destroy_pcm16_t(pcm16_t *pcm16) {
       free(a->SYNTH.options);
       break;
     }
-    free(a->pcm);
+    switch (a->track_type) {
+    case 0:
+      free(a->mono.pcm);
+      break;
+    case 1:
+      free(a->stereo.lpcm);
+      free(a->stereo.rpcm);
+      break;
+    }
     free(a);
   }
 }
@@ -134,13 +142,13 @@ void clean_all_symrec_t_all_dats_t() {
            free(nr);
          }*/
       } break;
-      case TOK_PCM16:
+      case TOK_TRACK:
         free(p->value.pcm16.identifier);
-        destroy_pcm16_t(p->value.pcm16.pcm);
+        destroy_track_t(p->value.pcm16.pcm);
         break;
       case TOK_WRITE:
         free(p->value.write.out_file);
-        destroy_pcm16_t(p->value.write.pcm);
+        destroy_track_t(p->value.write.pcm);
         break;
       default:
         ERROR("UNKNOWN TYPE %d\n", p->type);
@@ -231,6 +239,7 @@ long int fpeeks(char *buff, long size, FILE *fp) {
   return size;
 }
 
+#if 0
 /*---------.
  | Scanner |
  `--------*/
@@ -338,7 +347,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -455,7 +464,7 @@ w:
       } else if (!strcmp("repeat", buff))
         return TOK_REPEAT;
       else if (!strcmp("pcm16", buff))
-        return TOK_PCM16;
+        return TOK_TRACK;
       else if (!strcmp("bpm", buff))
         return TOK_BPM;
       else if (!strcmp("octave", buff))
@@ -488,7 +497,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -655,7 +664,7 @@ w:
         "this crash on https://github.com/harieamjari/dats\n");
   exit(1);
 }
-
+#endif
 /*---------.
  | Scanner |
  `--------*/
@@ -778,7 +787,7 @@ w:
     c = '/';
   }
   switch (c) {
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -886,8 +895,8 @@ w:
 
       } else if (!strcmp("repeat", buff))
         return TOK_REPEAT;
-      else if (!strcmp("pcm16", buff))
-        return TOK_PCM16;
+      else if (!strcmp("track", buff))
+        return TOK_TRACK;
       else if (buff[0] == 'n' && !buff[1])
         return TOK_N;
       else if (buff[0] == 'r' && !buff[1])
@@ -925,7 +934,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-  // clang-format off
+    // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -1145,7 +1154,7 @@ const char *token_t_to_str(const token_t t) {
     return "note";
   case TOK_MAIN:
     return "main";
-  case TOK_PCM16:
+  case TOK_TRACK:
     return "pcm16";
   case TOK_SYNTH:
     return "synth";
@@ -1180,11 +1189,11 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
       printf("  %-20s    %-20s\n", p->value.staff.identifier,
              token_t_to_str(TOK_STAFF));
       break;
-    case TOK_PCM16:
+    case TOK_TRACK:
       printf("  %-20s    %-20s\n",
              p->value.staff.identifier == NULL ? "(null)"
                                                : p->value.staff.identifier,
-             token_t_to_str(TOK_PCM16));
+             token_t_to_str(TOK_TRACK));
       break;
     case TOK_WRITE:
       printf("  [write]\n");

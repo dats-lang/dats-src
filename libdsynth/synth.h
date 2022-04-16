@@ -3,7 +3,7 @@
 #include "env.h"
 #include <stdint.h>
 
-enum DSOptionType { DSOPTION_FLOAT, DSOPTION_STRING};
+enum DSOptionType { DSOPTION_FLOAT, DSOPTION_STRING };
 typedef enum DSOptionType DSOptionType;
 
 typedef struct DSOption DSOption;
@@ -34,7 +34,7 @@ struct DSSynth {
   void (*const print_documentation)(void);
 
   /* This is set to your implementation of synth. */
-  int (*const synth)(const symrec_t *const staff, pcm16_t *const ctx);
+  int (*const synth)(const symrec_t *const staff, track_t *const ctx);
 };
 
 #endif /* DSYNTH_H */

@@ -186,8 +186,8 @@ main {
 /* multi line **
    ***
    hh */
-  /* pcm16 tmp1 = synth.kpa(apple);*/
-   pcm16 track1 = synth.kpa(apple);
+  /* track tmp1 = synth.kpa(apple);*/
+   track track1 = synth.kpa(apple);
     write("t.wav", track1); 
 }
 

@@ -35,7 +35,7 @@ struct DFFilter {
   void (*const print_documentation)(void);
 
   /* This is set to your implementation of your filter. */
-  int (*filter)(pcm16_t *pcm_dest, pcm16_t *pcm_src);
+  int (*filter)(track_t *pcm_dest, track_t *pcm_src);
 };
 
 #endif /* DFILTER_H */

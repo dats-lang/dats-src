@@ -91,6 +91,6 @@ staff foo {
 }
 
 main {
-  pcm16 bar = synth.square(foo);
+  track bar = synth.square(foo);
   write("t.wav", bar);
 }

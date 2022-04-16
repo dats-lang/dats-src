@@ -9,8 +9,8 @@
 #include "sf2.h"
 #endif
 
-#include "synth.h"
 #include "log.h"
+#include "synth.h"
 #include "utils.h"
 
 /* clang-format off */
@@ -29,11 +29,11 @@ static void reset_options_to_default(void) {
       options[i].value.floatv = 0.0;
       continue;
     }
-    free(options[i].value.strv);
+    options[i].value.strv = NULL;
   }
 }
 
-void write_note(int16_t* pcm, void *args, note_t*note, uint32_t seek_pcm){
+void write_note(int16_t *pcm, void *args, note_t *note, uint32_t seek_pcm) {
   /* Play a note */
   fluid_synth_noteon(args, 0, note->mnkey, 60);
   fluid_synth_write_s16(args, note->duration, pcm, seek_pcm, 1, pcm, seek_pcm,
@@ -41,7 +41,7 @@ void write_note(int16_t* pcm, void *args, note_t*note, uint32_t seek_pcm){
   fluid_synth_noteoff(args, 0, note->mnkey);
 }
 
-static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
+static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
   char *sf2_name;
   if (options[0].value.strv == NULL) {
     fprintf(stderr, "[s_sf2] no sf2 file entered.");
@@ -51,7 +51,7 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
 #elif defined(__unix__)
         "/usr/share"
 #endif
-        "/soundfonts/default.sf2";
+                          "/soundfonts/default.sf2";
     printf(" using %s", sf2_name);
     fflush(stdout);
 
@@ -104,17 +104,31 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
   int sfont_id, bank_num, preset_num;
   fluid_synth_get_program(synth, 0, &sfont_id, &bank_num, &preset_num);
   fluid_synth_program_select(synth, 0, sfont_id, (int)options[2].value.floatv,
-   (int) options[1].value.floatv);
+                             (int)options[1].value.floatv);
 
   uint32_t tnb_samples = staff->value.staff.nb_samples + 1024;
-  int16_t *pcm =
-      calloc(tnb_samples, sizeof(int16_t));
-  if (pcm == NULL){
-    DSYNTH_LOG("non mem\n");
-    return 1;
-  }
 
-  write_block(pcm, synth, staff->value.staff.bnr, write_note);
+  int16_t *pcm, *lpcm, *rpcm;
+  switch (pcm_ctx->track_type) {
+  case 0:
+    pcm = calloc(tnb_samples, sizeof(int16_t));
+    if (pcm == NULL) {
+      DSYNTH_LOG("no mem\n");
+      return 1;
+    }
+    write_block(pcm, NULL, staff->value.staff.bnr, write_note);
+    break;
+  case 1:
+    lpcm = calloc(tnb_samples, sizeof(int16_t));
+    rpcm = calloc(tnb_samples, sizeof(int16_t));
+    if (lpcm == NULL || rpcm == NULL) {
+      DSYNTH_LOG("no mem\n");
+      return 1;
+    }
+    write_block(lpcm, NULL, staff->value.staff.bnr, write_note);
+    write_block(rpcm, NULL, staff->value.staff.bnr, write_note);
+    break;
+  }
 
   if (synth) {
     delete_fluid_synth(synth);
@@ -167,9 +181,21 @@ static int synth(const symrec_t *const staff, pcm16_t *const pcm_ctx) {
     }
     putchar('\n');
   }
-  pcm_ctx->nb_samples = tnb_samples;
-  pcm_ctx->play_end = staff->value.staff.nb_samples;
-  pcm_ctx->pcm = pcm;
+  switch (pcm_ctx->track_type) {
+  case 0:
+    pcm_ctx->mono.pcm = pcm;
+    pcm_ctx->mono.nb_samples = tnb_samples;
+    pcm_ctx->mono.play_end = staff->value.staff.nb_samples;
+    break;
+  case 1:
+    pcm_ctx->stereo.lpcm = lpcm;
+    pcm_ctx->stereo.rpcm = rpcm;
+    pcm_ctx->stereo.lnb_samples = tnb_samples;
+    pcm_ctx->stereo.rnb_samples = tnb_samples;
+    pcm_ctx->stereo.lplay_end = staff->value.staff.nb_samples;
+    pcm_ctx->stereo.rplay_end = staff->value.staff.nb_samples;
+    break;
+  }
   reset_options_to_default();
 
   //  sf2_destroy_sf2(sf2_ctx);

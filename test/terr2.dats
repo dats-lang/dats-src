@@ -190,9 +190,9 @@ main {
 /* multi line **
    ***
    hh */
-  /* pcm16 tmp1 = synth.kpa(apple);*/
-   pcm16 track1 = synth.kpa(appale), track1;
-   pcm16 kd = filter.lk(synth.kpdqa(sapple));
+  /* track tmp1 = synth.kpa(apple);*/
+   track track1 = synth.kpa(appale), track1;
+   track kd = filter.lk(synth.kpdqa(sapple));
    /* write("t.wav", track1); */
 }
 

@@ -26,9 +26,9 @@ static void reset_options_to_default(void) {
   }
 }
 
-static pcm16_t *synth(const symrec_t *staff) {
+static track_t *synth(const symrec_t *staff) {
   int16_t *pcm = calloc(sizeof(int16_t), (size_t)staff->value.staff.nb_samples);
-  pcm16_t *pcm_ctx = malloc(sizeof(pcm16_t));
+  track_t *pcm_ctx = malloc(sizeof(track_t));
   if (pcm_ctx == NULL || pcm == NULL)
     return NULL;
 
@@ -57,7 +57,7 @@ static pcm16_t *synth(const symrec_t *staff) {
       printf("%f", ctx->value.floatv);
       break;
     case DSOPTION_FLOAT:
-      printf("%d", ctx-.value.floatv);
+      printf("%d", ctx -.value.floatv);
       break;
     case DSOPTION_STRING:
       printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");

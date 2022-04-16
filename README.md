@@ -18,7 +18,7 @@ staff pol {
 main {
   // This uses the synthesizer named "kpa"
   // An implementation of Karplus-Strong Algorithm
-  pcm16 kol = synth.kpa(pol);
+  track kol = synth.kpa(pol);
   write("sample.wav", kol);
 }
 ```
