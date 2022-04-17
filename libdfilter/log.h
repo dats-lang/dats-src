@@ -1,1 +1,5 @@
-#define DFILTER_LOG(x) fprintf(stderr,"[%s:%d] %s\n", __FILE__,  __LINE__, x)
+#define DFILTER_LOG(...)                                                       \
+  {                                                                            \
+    fprintf(stderr, "[%s:%d] ", __FILE__, __LINE__);                           \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  }

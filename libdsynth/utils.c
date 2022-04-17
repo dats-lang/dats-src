@@ -2,8 +2,8 @@
 #include "synth.h"
 
 static uint32_t pcm_seek = 0;
-static void write_block2(int16_t *pcm, void *args, bnr_t *bnr,
-                         void(write_note)(int16_t *, void *, note_t *,
+static void write_block2(int16_t *pcm, void **args, bnr_t *bnr,
+                         void(write_note)(int16_t *, void **, note_t *,
                                           uint32_t)) {
   for (uint8_t rep = 0; rep < bnr->block_repeat + 1; rep++)
     for (nr_t *n = bnr->nr; n != NULL; n = n->next) {
@@ -20,8 +20,8 @@ static void write_block2(int16_t *pcm, void *args, bnr_t *bnr,
     }
 }
 
-void write_block(int16_t *pcm, void *args, bnr_t *bnr,
-                 void(write_note)(int16_t *, void *, note_t *, uint32_t)) {
+void write_block(int16_t *pcm, void **args, bnr_t *bnr,
+                 void(write_note)(int16_t *, void **, note_t *, uint32_t)) {
   write_block2(pcm, args, bnr, write_note);
   pcm_seek = 0;
 }

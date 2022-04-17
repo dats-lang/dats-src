@@ -30,11 +30,12 @@ int exec_write(dats_t *dats) {
           tnb_samples += pcm16->stereo.lplay_end;
         } else
           tnb_samples += pcm16->stereo.lnb_samples;
-
+#if 0
         if (pcm16->next != NULL) {
           tnb_samples += pcm16->stereo.rplay_end;
         } else
           tnb_samples += pcm16->stereo.rnb_samples;
+#endif
         break;
       }
 
@@ -66,15 +67,15 @@ int exec_write(dats_t *dats) {
         uint32_t lseek_pcm = 0, rseek_pcm = 0;
         for (track_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
              pcm16 = pcm16->next) {
-          for (uint32_t n = 0; n < pcm16->stereo.lnb_samples; n++)
-            out_pcm[lseek_pcm + n * 2] = mix16(
-                out_pcm[lseek_pcm + n], pcm16->stereo.lpcm[n], pcm16->gain);
-          for (uint32_t n = 0; n < pcm16->stereo.rnb_samples; n++)
-            out_pcm[rseek_pcm + n * 2 + 1] = mix16(
-                out_pcm[rseek_pcm + n], pcm16->stereo.rpcm[n], pcm16->gain);
+          for (uint32_t n = 0; n < pcm16->stereo.lnb_samples; n++){
+            out_pcm[lseek_pcm + (n * 2)] = mix16(
+                out_pcm[lseek_pcm + n*2], pcm16->stereo.lpcm[n], pcm16->gain);
+            out_pcm[rseek_pcm + (n * 2) + 1] = mix16(
+                out_pcm[rseek_pcm + n*2 + 1], pcm16->stereo.rpcm[n], pcm16->gain);
+          }
 
-          lseek_pcm += pcm16->stereo.lplay_end;
-          rseek_pcm += pcm16->stereo.rplay_end;
+          lseek_pcm += 2*pcm16->stereo.lplay_end;
+          rseek_pcm += (2*pcm16->stereo.rplay_end) + 1;
         }
       }break;
       }

@@ -20,7 +20,7 @@ static void reset_options_to_default(void) {
   }
 }
 
-static void write_note(int16_t *pcm, void *args, note_t *note,
+static void write_note(int16_t *pcm, void **args, note_t *note,
                        uint32_t seek_pcm) {
   int16_t wavetable[(int)(44100.0 / note->frequency)];
   int rise = (int)(44100.0 * options[0].value.floatv / note->frequency);

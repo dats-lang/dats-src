@@ -897,6 +897,10 @@ w:
         return TOK_REPEAT;
       else if (!strcmp("track", buff))
         return TOK_TRACK;
+      else if (!strcmp("stereo", buff))
+        return TOK_STEREO;
+      else if (!strcmp("mono", buff))
+        return TOK_MONO;
       else if (buff[0] == 'n' && !buff[1])
         return TOK_N;
       else if (buff[0] == 'r' && !buff[1])
@@ -1155,7 +1159,11 @@ const char *token_t_to_str(const token_t t) {
   case TOK_MAIN:
     return "main";
   case TOK_TRACK:
-    return "pcm16";
+    return "track";
+  case TOK_STEREO:
+    return "stereo";
+  case TOK_MONO:
+    return "mono";
   case TOK_SYNTH:
     return "synth";
   case TOK_FILTER:
@@ -1190,10 +1198,10 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
              token_t_to_str(TOK_STAFF));
       break;
     case TOK_TRACK:
-      printf("  %-20s    %-20s\n",
-             p->value.staff.identifier == NULL ? "(null)"
-                                               : p->value.staff.identifier,
-             token_t_to_str(TOK_TRACK));
+      printf("  %-20s    %-20s %s\n",
+             p->value.pcm16.identifier == NULL ? "(null)"
+                                               : p->value.pcm16.identifier,
+             token_t_to_str(TOK_TRACK), (!p->value.pcm16.pcm->track_type)?"mono":"stereo");
       break;
     case TOK_WRITE:
       printf("  [write]\n");

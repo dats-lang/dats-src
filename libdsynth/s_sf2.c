@@ -25,7 +25,6 @@ static DSOption options[] = {
 static void reset_options_to_default(void) {
   for (int i = 0; options[i].option_name != NULL; i++) {
     if (options[i].type != DSOPTION_STRING) {
-      options[i].value.floatv = 0;
       options[i].value.floatv = 0.0;
       continue;
     }
@@ -33,12 +32,22 @@ static void reset_options_to_default(void) {
   }
 }
 
-void write_note(int16_t *pcm, void *args, note_t *note, uint32_t seek_pcm) {
+static void write_note_mono(int16_t *pcm, void **args, note_t *note,
+                            uint32_t seek_pcm) {
   /* Play a note */
-  fluid_synth_noteon(args, 0, note->mnkey, 60);
-  fluid_synth_write_s16(args, note->duration, pcm, seek_pcm, 1, pcm, seek_pcm,
-                        1);
-  fluid_synth_noteoff(args, 0, note->mnkey);
+  fluid_synth_noteon(args[0], 0, note->mnkey, 60);
+  fluid_synth_write_s16(args[0], note->duration, pcm, seek_pcm, 1, pcm,
+                        seek_pcm, 1);
+  fluid_synth_noteoff(args[0], 0, note->mnkey);
+}
+
+static void write_note_stereo(int16_t *pcm, void **args, note_t *note,
+                              uint32_t seek_pcm) {
+  /* Play a note */
+  fluid_synth_noteon(args[0], 0, note->mnkey, 60);
+  fluid_synth_write_s16(args[0], note->duration, args[1], seek_pcm, 1, args[2],
+                        seek_pcm, 1);
+  fluid_synth_noteoff(args[0], 0, note->mnkey);
 }
 
 static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
@@ -52,7 +61,7 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
         "/usr/share"
 #endif
                           "/soundfonts/default.sf2";
-    printf(" using %s", sf2_name);
+    printf(" using %s\n", sf2_name);
     fflush(stdout);
 
   } else
@@ -116,7 +125,7 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
       DSYNTH_LOG("no mem\n");
       return 1;
     }
-    write_block(pcm, NULL, staff->value.staff.bnr, write_note);
+    write_block(pcm, &(void *){synth}, staff->value.staff.bnr, write_note_mono);
     break;
   case 1:
     lpcm = calloc(tnb_samples, sizeof(int16_t));
@@ -125,8 +134,9 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
       DSYNTH_LOG("no mem\n");
       return 1;
     }
-    write_block(lpcm, NULL, staff->value.staff.bnr, write_note);
-    write_block(rpcm, NULL, staff->value.staff.bnr, write_note);
+    // void *args[3] = &(void*){synth, lpcm, rpcm};
+    write_block(NULL, (void *[]){(void *)synth, (void *)lpcm, (void *)rpcm},
+                staff->value.staff.bnr, write_note_stereo);
     break;
   }
 
@@ -170,13 +180,13 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
        }
      }*/
   for (DSOption *ctx = options; ctx->option_name != NULL; ctx++) {
-    printf("[s_sf2] %s ", ctx->option_name);
     switch (ctx->type) {
     case DSOPTION_FLOAT:
-      printf("%f", ctx->value.floatv);
+      DSYNTH_LOG("%s: %f", ctx->option_name, ctx->value.floatv);
       break;
     case DSOPTION_STRING:
-      printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
+      DSYNTH_LOG("%s: %s", ctx->option_name,
+                 ctx->value.strv != NULL ? ctx->value.strv : " ");
       break;
     }
     putchar('\n');

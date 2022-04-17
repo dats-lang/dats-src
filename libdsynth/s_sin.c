@@ -49,7 +49,7 @@ static double exponential_release(double x, double n) {
 double (*attack_ret)(double, double) = NULL;
 double (*release_ret)(double, double) = NULL;
 
-static void write_note(int16_t *pcm, void *args, note_t *note,
+static void write_note(int16_t *pcm, void **args, note_t *note,
                        uint32_t seek_pcm) {
   for (uint32_t i = 0; i < note->duration; i++) {
     double sample1 =
@@ -108,13 +108,12 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
   }
 
   for (DSOption *ctx = options; ctx->option_name != NULL; ctx++) {
-    printf("[s_sin] %s ", ctx->option_name);
     switch (ctx->type) {
     case DSOPTION_FLOAT:
-      printf("%f", ctx->value.floatv);
+      DSYNTH_LOG("%s: %f", ctx->option_name, ctx->value.floatv);
       break;
     case DSOPTION_STRING:
-      printf("%s", ctx->value.strv != NULL ? ctx->value.strv : " ");
+      DSYNTH_LOG("%s: %s", ctx->option_name, ctx->value.strv != NULL ? ctx->value.strv : " ");
       break;
     }
     putchar('\n');

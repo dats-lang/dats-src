@@ -45,3 +45,6 @@ core
 
 version.h
 
+# Parser tests
+ptest
+
