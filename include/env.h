@@ -157,15 +157,15 @@ struct track_t {
       size_t line, column;
     } ID;
     struct {
-      uint32_t nb_pcm16;
-      track_t **pcm16; // an array
+      uint32_t nb_track;
+      track_t **track; // an array
       size_t line, column;
     } MIX;
     struct {
       char *filter_name;
-      track_t *pcm16_arg; // a linked list
+      track_t *track_arg; // a linked list
       uint32_t filter_line, filter_column;
-      uint32_t pcm16_line, pcm16_column;
+      uint32_t track_line, track_column;
       uint16_t nb_options;
       filter_option_t *options;
     } FILTER;
@@ -218,7 +218,7 @@ struct symrec_t {
 
     struct {
       char *out_file;
-      track_t *pcm;
+      track_t *track;
  //     uint32_t nb_samples;
     } write;
     /* struct
@@ -230,8 +230,8 @@ struct symrec_t {
     struct {
       char *identifier;
       uint32_t nb_samples;
-      track_t *pcm;
-    } pcm16;
+      track_t *track;
+    } track;
   } value;
 
   symrec_t *next;

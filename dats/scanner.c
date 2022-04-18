@@ -51,20 +51,20 @@ void clean_all_dats_t(void) {
   dats_files = NULL;
 }
 
-void destroy_track_t(track_t *pcm16) {
-  if (pcm16 == NULL)
+void destroy_track_t(track_t *track) {
+  if (track == NULL)
     return;
   track_t *n;
-  for (track_t *a = pcm16; a != NULL; a = n) {
+  for (track_t *a = track; a != NULL; a = n) {
     n = a->next;
     switch (a->type) {
     case ID:
       free(a->ID.id);
       break;
     case MIX:
-      for (uint32_t i = 0; i < a->MIX.nb_pcm16; i++)
-        destroy_track_t(a->MIX.pcm16[i]);
-      free(a->MIX.pcm16);
+      for (uint32_t i = 0; i < a->MIX.nb_track; i++)
+        destroy_track_t(a->MIX.track[i]);
+      free(a->MIX.track);
       break;
     case FILTER:
       free(a->FILTER.filter_name);
@@ -73,7 +73,7 @@ void destroy_track_t(track_t *pcm16) {
         if (a->FILTER.options[i].is_strv)
           free(a->FILTER.options[i].strv);
       }
-      destroy_track_t(a->FILTER.pcm16_arg);
+      destroy_track_t(a->FILTER.track_arg);
       break;
     case SYNTH:
       free(a->SYNTH.synth_name);
@@ -143,12 +143,12 @@ void clean_all_symrec_t_all_dats_t() {
          }*/
       } break;
       case TOK_TRACK:
-        free(p->value.pcm16.identifier);
-        destroy_track_t(p->value.pcm16.pcm);
+        free(p->value.track.identifier);
+        destroy_track_t(p->value.track.track);
         break;
       case TOK_WRITE:
         free(p->value.write.out_file);
-        destroy_track_t(p->value.write.pcm);
+        destroy_track_t(p->value.write.track);
         break;
       default:
         ERROR("UNKNOWN TYPE %d\n", p->type);
@@ -463,7 +463,7 @@ w:
 
       } else if (!strcmp("repeat", buff))
         return TOK_REPEAT;
-      else if (!strcmp("pcm16", buff))
+      else if (!strcmp("track", buff))
         return TOK_TRACK;
       else if (!strcmp("bpm", buff))
         return TOK_BPM;
@@ -1199,9 +1199,9 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
       break;
     case TOK_TRACK:
       printf("  %-20s    %-20s %s\n",
-             p->value.pcm16.identifier == NULL ? "(null)"
-                                               : p->value.pcm16.identifier,
-             token_t_to_str(TOK_TRACK), (!p->value.pcm16.pcm->track_type)?"mono":"stereo");
+             p->value.track.identifier == NULL ? "(null)"
+                                               : p->value.track.identifier,
+             token_t_to_str(TOK_TRACK), (!p->value.track.track->track_type)?"mono":"stereo");
       break;
     case TOK_WRITE:
       printf("  [write]\n");

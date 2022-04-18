@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-extern int gen_pcm16(dats_t *, track_t *);
+extern int gen_track(dats_t *, track_t *);
 extern int16_t mix16(int16_t, int16_t, float);
 
 int exec_write(dats_t *dats) {
@@ -16,25 +16,25 @@ int exec_write(dats_t *dats) {
       perror(n->value.write.out_file);
       return 1;
     }
-    for (track_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
-         pcm16 = pcm16->next)
-      gen_pcm16(dats, pcm16);
+    for (track_t *track = n->value.write.track; track != NULL;
+         track = track->next)
+      gen_track(dats, track);
     uint32_t tnb_samples = 0;
-    for (track_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
-         pcm16 = pcm16->next) {
-      switch (pcm16->track_type) {
+    for (track_t *track = n->value.write.track; track != NULL;
+         track = track->next) {
+      switch (track->track_type) {
       case 0:
-          tnb_samples += pcm16->mono.nb_samples; break;
+          tnb_samples += track->mono.nb_samples; break;
       case 1:
-        if (pcm16->next != NULL) {
-          tnb_samples += pcm16->stereo.lplay_end;
+        if (track->next != NULL) {
+          tnb_samples += track->stereo.lplay_end;
         } else
-          tnb_samples += pcm16->stereo.lnb_samples;
+          tnb_samples += track->stereo.lnb_samples;
 #if 0
-        if (pcm16->next != NULL) {
-          tnb_samples += pcm16->stereo.rplay_end;
+        if (track->next != NULL) {
+          tnb_samples += track->stereo.rplay_end;
         } else
-          tnb_samples += pcm16->stereo.rnb_samples;
+          tnb_samples += track->stereo.rnb_samples;
 #endif
         break;
       }
@@ -43,39 +43,39 @@ int exec_write(dats_t *dats) {
           .fp = fp,
           .Subchunk1Size = 16,
           .AudioFormat = 1,
-          .NumChannels = (n->value.write.pcm->track_type) ? 2 : 1,
+          .NumChannels = (n->value.write.track->track_type) ? 2 : 1,
           .SampleRate = 44100,
-          .NumSamples = /*(n->value.write.pcm->track_type ? 2 : 1)*/tnb_samples,
+          .NumSamples = /*(n->value.write.track->track_type ? 2 : 1)*/tnb_samples,
           .BitsPerSample = 16,
       };
       wav_write_header(&wav);
       int16_t *out_pcm = calloc(tnb_samples * wav.NumChannels, sizeof(int16_t));
       assert(out_pcm != NULL);
 
-      switch (n->value.write.pcm->track_type) {
+      switch (n->value.write.track->track_type) {
       case 0: {
         uint32_t seek_pcm = 0;
-        for (track_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
-             pcm16 = pcm16->next) {
-          for (uint32_t n = 0; n < pcm16->mono.nb_samples; n++)
+        for (track_t *track = n->value.write.track; track != NULL;
+             track = track->next) {
+          for (uint32_t n = 0; n < track->mono.nb_samples; n++)
             out_pcm[seek_pcm + n] =
-                mix16(out_pcm[seek_pcm + n], pcm16->mono.pcm[n], pcm16->gain);
-          seek_pcm += pcm16->mono.play_end;
+                mix16(out_pcm[seek_pcm + n], track->mono.pcm[n], track->gain);
+          seek_pcm += track->mono.play_end;
         }
       } break;
       case 1: {
         uint32_t lseek_pcm = 0, rseek_pcm = 0;
-        for (track_t *pcm16 = n->value.write.pcm; pcm16 != NULL;
-             pcm16 = pcm16->next) {
-          for (uint32_t n = 0; n < pcm16->stereo.lnb_samples; n++){
+        for (track_t *track = n->value.write.track; track != NULL;
+             track = track->next) {
+          for (uint32_t n = 0; n < track->stereo.lnb_samples; n++){
             out_pcm[lseek_pcm + (n * 2)] = mix16(
-                out_pcm[lseek_pcm + n*2], pcm16->stereo.lpcm[n], pcm16->gain);
+                out_pcm[lseek_pcm + n*2], track->stereo.lpcm[n], track->gain);
             out_pcm[rseek_pcm + (n * 2) + 1] = mix16(
-                out_pcm[rseek_pcm + n*2 + 1], pcm16->stereo.rpcm[n], pcm16->gain);
+                out_pcm[rseek_pcm + n*2 + 1], track->stereo.rpcm[n], track->gain);
           }
 
-          lseek_pcm += 2*pcm16->stereo.lplay_end;
-          rseek_pcm += (2*pcm16->stereo.rplay_end) + 1;
+          lseek_pcm += 2*track->stereo.lplay_end;
+          rseek_pcm += (2*track->stereo.rplay_end) + 1;
         }
       }break;
       }

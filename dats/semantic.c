@@ -28,14 +28,14 @@
 #include "libdfilter/allfilter.h"
 #include "libdsynth/allsynth.h"
 
-void print_track_t(track_t *const pcm16);
+void print_track_t(track_t *const track);
 
 static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
   for (symrec_t *sym1 = sym; sym1 != NULL; sym1 = sym1->next) {
     char *id1;
     switch (sym1->type) {
     case TOK_TRACK:
-      id1 = sym1->value.pcm16.identifier;
+      id1 = sym1->value.track.identifier;
       break;
     case TOK_STAFF:
       id1 = sym1->value.staff.identifier;
@@ -47,7 +47,7 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
       char *id2;
       switch (sym2->type) {
       case TOK_TRACK:
-        id2 = sym2->value.pcm16.identifier;
+        id2 = sym2->value.track.identifier;
         break;
       case TOK_STAFF:
         id2 = sym2->value.staff.identifier;
@@ -65,81 +65,81 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
   return 0;
 }
 
-int semantic_track_t(dats_t *d, symrec_t *sym, track_t *pcm16_cur) {
+int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
   int err = 0;
-  if (pcm16_cur == NULL)
+  if (track_cur == NULL)
     return 0;
 
-  switch (pcm16_cur->type) {
+  switch (track_cur->type) {
   case ID: {
-    symrec_t *pcm16 = getsym(d, pcm16_cur->ID.id);
-    if (pcm16 == NULL) {
-      REPORT("Undefined reference to '%s'\n", pcm16_cur->ID.id);
-      print_scan_line(d->fp, pcm16_cur->ID.line, pcm16_cur->ID.column);
+    symrec_t *track = getsym(d, track_cur->ID.id);
+    if (track == NULL) {
+      REPORT("Undefined reference to '%s'\n", track_cur->ID.id);
+      print_scan_line(d->fp, track_cur->ID.line, track_cur->ID.column);
       goto exit;
     }
-    if (pcm16->type != TOK_TRACK) {
-      SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
-               "Incompatible %s to pcm16\n", token_t_to_str(pcm16->type));
+    if (track->type != TOK_TRACK) {
+      SEMANTIC(d, track_cur->ID.line, track_cur->ID.column,
+               "Incompatible %s to track\n", token_t_to_str(track->type));
       REPORT("note: previously declared here:\n");
-      print_scan_line(d->fp, pcm16->line, pcm16->column);
+      print_scan_line(d->fp, track->line, track->column);
       goto exit;
     }
-    if (pcm16 == sym) {
-      SEMANTIC(d, pcm16_cur->ID.line, pcm16_cur->ID.column,
+    if (track == sym) {
+      SEMANTIC(d, track_cur->ID.line, track_cur->ID.column,
                "Infringing definition to itself\n");
       REPORT("with:\n");
-      print_scan_line(d->fp, pcm16->line, pcm16->column);
+      print_scan_line(d->fp, track->line, track->column);
     }
   }
     goto exit;
   case SYNTH: {
-    const DSSynth *driver = get_dsynth_by_name(pcm16_cur->SYNTH.synth_name);
+    const DSSynth *driver = get_dsynth_by_name(track_cur->SYNTH.synth_name);
     if (driver == NULL) {
-      SEMANTIC(d, pcm16_cur->SYNTH.synth_line, pcm16_cur->SYNTH.synth_column,
-               "No synth named, '%s'\n", pcm16_cur->SYNTH.synth_name);
+      SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+               "No synth named, '%s'\n", track_cur->SYNTH.synth_name);
       err = 1;
     }
-    symrec_t *pcm16 = getsym(d, pcm16_cur->SYNTH.staff_name);
-    if (pcm16 == NULL) {
-      SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-               "Undefined reference to '%s'\n", pcm16_cur->SYNTH.staff_name);
+    symrec_t *track = getsym(d, track_cur->SYNTH.staff_name);
+    if (track == NULL) {
+      SEMANTIC(d, track_cur->SYNTH.staff_line, track_cur->SYNTH.staff_column,
+               "Undefined reference to '%s'\n", track_cur->SYNTH.staff_name);
       err = 1;
     }
     if (err)
       goto exit;
-    if (pcm16->type != TOK_STAFF) {
-      SEMANTIC(d, pcm16_cur->SYNTH.staff_line, pcm16_cur->SYNTH.staff_column,
-               "Incompatible %s to staff\n", token_t_to_str(pcm16->type));
+    if (track->type != TOK_STAFF) {
+      SEMANTIC(d, track_cur->SYNTH.staff_line, track_cur->SYNTH.staff_column,
+               "Incompatible %s to staff\n", token_t_to_str(track->type));
       REPORT("note: previously declared here:\n");
-      print_scan_line(d->fp, pcm16->line, pcm16->column);
+      print_scan_line(d->fp, track->line, track->column);
     }
-    for (size_t i = 0; i < pcm16_cur->SYNTH.nb_options; i++) {
+    for (size_t i = 0; i < track_cur->SYNTH.nb_options; i++) {
       DSOption *options = NULL;
       for (options = driver->options; options->option_name != NULL; options++) {
         if (!strcmp(options->option_name,
-                    pcm16_cur->SYNTH.options[i].option_name)) {
+                    track_cur->SYNTH.options[i].option_name)) {
           goto found;
         }
       }
-      SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
-               pcm16_cur->SYNTH.options[i].column,
+      SEMANTIC(d, track_cur->SYNTH.options[i].line,
+               track_cur->SYNTH.options[i].column,
                "No synth options named, '%s'\n",
-               pcm16_cur->SYNTH.options[i].option_name);
+               track_cur->SYNTH.options[i].option_name);
       continue;
     found : {}
-      if (pcm16_cur->SYNTH.options[i].is_strv &&
+      if (track_cur->SYNTH.options[i].is_strv &&
           options->type == DSOPTION_FLOAT) {
-        SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
-                 pcm16_cur->SYNTH.options[i].column,
+        SEMANTIC(d, track_cur->SYNTH.options[i].line,
+                 track_cur->SYNTH.options[i].column,
                  "Option, '%s', requires value\n",
-                 pcm16_cur->SYNTH.options[i].option_name);
-      } else if (!pcm16_cur->SYNTH.options[i].is_strv &&
+                 track_cur->SYNTH.options[i].option_name);
+      } else if (!track_cur->SYNTH.options[i].is_strv &&
                  options->type == DSOPTION_STRING) {
-        SEMANTIC(d, pcm16_cur->SYNTH.options[i].line,
-                 pcm16_cur->SYNTH.options[i].column,
+        SEMANTIC(d, track_cur->SYNTH.options[i].line,
+                 track_cur->SYNTH.options[i].column,
                  "Option, '%s', requires string\n",
-                 pcm16_cur->SYNTH.options[i].option_name);
+                 track_cur->SYNTH.options[i].option_name);
       }
     }
     //    printf("Synth %s found\n", tok_identifier);
@@ -150,20 +150,20 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *pcm16_cur) {
   }
     goto exit;
   case FILTER: {
-    const DFFilter *driver = get_dfilter_by_name(pcm16_cur->FILTER.filter_name);
+    const DFFilter *driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
     if (driver == NULL) {
-      SEMANTIC(d, pcm16_cur->FILTER.filter_line,
-               pcm16_cur->FILTER.filter_column, "No filter named, '%s'\n",
-               pcm16_cur->FILTER.filter_name);
+      SEMANTIC(d, track_cur->FILTER.filter_line,
+               track_cur->FILTER.filter_column, "No filter named, '%s'\n",
+               track_cur->FILTER.filter_name);
     }
-    for (track_t *pc = pcm16_cur->FILTER.pcm16_arg; pc != NULL; pc = pc->next)
+    for (track_t *pc = track_cur->FILTER.track_arg; pc != NULL; pc = pc->next)
       semantic_track_t(d, sym, pc);
-    // pcm16_cur = pcm16_cur->FILTER.pcm16_arg;
+    // track_cur = track_cur->FILTER.track_arg;
   }
     goto exit;
   case MIX:
-    for (uint32_t nb_args = 0; nb_args < pcm16_cur->MIX.nb_pcm16; nb_args++)
-      semantic_track_t(d, sym, pcm16_cur->MIX.pcm16[nb_args]);
+    for (uint32_t nb_args = 0; nb_args < track_cur->MIX.nb_track; nb_args++)
+      semantic_track_t(d, sym, track_cur->MIX.track[nb_args]);
     goto exit;
   }
 exit:
@@ -177,12 +177,12 @@ int semantic_cur_dats_t(dats_t *d) {
   for (symrec_t *n = d->sym_table; n != NULL; n = n->next) {
     switch (n->type) {
     case TOK_TRACK:
-      // print_track_t(n->value.pcm16.pcm);
-      for (track_t *pc = n->value.pcm16.pcm; pc != NULL; pc = pc->next)
+      // print_track_t(n->value.track.track);
+      for (track_t *pc = n->value.track.track; pc != NULL; pc = pc->next)
         (void)semantic_track_t(d, n, pc);
       break;
     case TOK_WRITE:
-      (void)semantic_track_t(d, n, n->value.write.pcm);
+      (void)semantic_track_t(d, n, n->value.write.track);
       break;
     }
   }

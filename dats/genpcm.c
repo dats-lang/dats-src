@@ -1,4 +1,4 @@
-/*  pcm16_s16le generator
+/*  track_s16le generator
  *
  * Copyright (c) 2022 Al-buharie Amjari
  *
@@ -31,7 +31,7 @@
 extern symrec_t *getsym(dats_t *, char *);
 extern void memmix16(int16_t *, int16_t *, float, uint32_t);
 
-int gen_pcm16(dats_t *dats, track_t *ctx) {
+int gen_track(dats_t *dats, track_t *ctx) {
   switch (ctx->track_type) {
   case 0:
     if (ctx->mono.pcm != NULL) {
@@ -86,32 +86,32 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
   case FILTER:
     filter_ctx = get_dfilter_by_name(ctx->FILTER.filter_name);
     int (*const filter_func)(track_t * dst, track_t * src) = filter_ctx->filter;
-    for (track_t *pcm16_arg = ctx->FILTER.pcm16_arg; pcm16_arg != NULL;
-         pcm16_arg = pcm16_arg->next) {
-      switch (pcm16_arg->track_type) {
+    for (track_t *track_arg = ctx->FILTER.track_arg; track_arg != NULL;
+         track_arg = track_arg->next) {
+      switch (track_arg->track_type) {
       case 0:
-        if (pcm16_arg->mono.pcm == NULL)
-          gen_pcm16(dats, pcm16_arg);
+        if (track_arg->mono.pcm == NULL)
+          gen_track(dats, track_arg);
         break;
       case 1:
-        if (pcm16_arg->stereo.lpcm == NULL && pcm16_arg->stereo.rpcm == NULL)
-          gen_pcm16(dats, pcm16_arg);
+        if (track_arg->stereo.lpcm == NULL && track_arg->stereo.rpcm == NULL)
+          gen_track(dats, track_arg);
         break;
       }
     }
-    if (filter_func(ctx, ctx->FILTER.pcm16_arg))
+    if (filter_func(ctx, ctx->FILTER.track_arg))
       return 1;
     break;
   case ID: {
-    track_t *src = getsym(dats, ctx->ID.id)->value.pcm16.pcm;
+    track_t *src = getsym(dats, ctx->ID.id)->value.track.track;
     switch (src->track_type) {
     case 0:
       if (src->mono.pcm == NULL)
-        gen_pcm16(dats, src);
+        gen_track(dats, src);
       break;
     case 1:
       if (src->stereo.lpcm == NULL && src->stereo.rpcm == NULL)
-        gen_pcm16(dats, src);
+        gen_track(dats, src);
       break;
     }
 
@@ -142,24 +142,24 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
     }
   } break;
   case MIX:
-    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++)
-      for (track_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next) {
+    for (uint32_t i = 0; i < ctx->MIX.nb_track; i++)
+      for (track_t *src = ctx->MIX.track[i]; src != NULL; src = src->next) {
         switch (src->track_type) {
         case 0:
           if (src->mono.pcm == NULL)
-            gen_pcm16(dats, src);
+            gen_track(dats, src);
           break;
         case 1:
           if (src->stereo.lpcm == NULL)
-            gen_pcm16(dats, src);
+            gen_track(dats, src);
           break;
         }
       }
 
     //   {
     uint32_t anb_samples = 0, bnb_samples = 0;
-    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++) {
-      for (track_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next) {
+    for (uint32_t i = 0; i < ctx->MIX.nb_track; i++) {
+      for (track_t *src = ctx->MIX.track[i]; src != NULL; src = src->next) {
         switch (src->track_type) {
         case 0:
           anb_samples += src->mono.nb_samples;
@@ -193,8 +193,8 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
     }
 
     uint32_t seek = 0, lseek = 0, rseek = 0;
-    for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++){
-      for (track_t *src = ctx->MIX.pcm16[i]; src != NULL; src = src->next) {
+    for (uint32_t i = 0; i < ctx->MIX.nb_track; i++){
+      for (track_t *src = ctx->MIX.track[i]; src != NULL; src = src->next) {
         switch (ctx->track_type) {
         case 0:
           /* Is src also mono? */
@@ -203,7 +203,7 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
           memmix16(ctx->mono.pcm + seek, src->mono.pcm, src->gain,
                    src->mono.nb_samples);
           seek += src->mono.play_end;
-          if (i == ctx->MIX.nb_pcm16 - 1 && src->next == NULL)
+          if (i == ctx->MIX.nb_track - 1 && src->next == NULL)
             ctx->mono.play_end = src->mono.play_end;
           break;
         case 1:
@@ -213,13 +213,13 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
           memmix16(ctx->stereo.lpcm + lseek, src->stereo.lpcm, src->gain,
                    src->stereo.lnb_samples);
           lseek += src->stereo.lplay_end;
-          if (i == ctx->MIX.nb_pcm16 - 1 && src->next == NULL)
+          if (i == ctx->MIX.nb_track - 1 && src->next == NULL)
             ctx->stereo.lplay_end = src->stereo.lplay_end;
 
           memmix16(ctx->stereo.rpcm + rseek, src->stereo.rpcm, src->gain,
                    src->stereo.rnb_samples);
           rseek += src->stereo.rplay_end;
-          if (i == ctx->MIX.nb_pcm16 - 1 && src->next == NULL)
+          if (i == ctx->MIX.nb_track - 1 && src->next == NULL)
             ctx->stereo.rplay_end = src->stereo.rplay_end;
         }
       }

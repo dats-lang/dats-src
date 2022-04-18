@@ -14,12 +14,12 @@ void print_all_nr_t(nr_t *nr) {
   }
 }
 
-void print_track_t(track_t *const pcm16) {
-  if (pcm16 == NULL)
+void print_track_t(track_t *const track) {
+  if (track == NULL)
     return;
   puts("PCM16");
   int ctr = 0;
-  for (track_t *p = pcm16; p != NULL; p = p->next) {
+  for (track_t *p = track; p != NULL; p = p->next) {
     printf("%s: %d\n", __func__, ctr++);
     switch (p->type) {
     case ID:
@@ -33,8 +33,8 @@ void print_track_t(track_t *const pcm16) {
       }
       break;
     case FILTER:
-      printf("FILTER %s %p\n", p->FILTER.filter_name, p->FILTER.pcm16_arg);
-      print_track_t(p->FILTER.pcm16_arg);
+      printf("FILTER %s %p\n", p->FILTER.filter_name, p->FILTER.track_arg);
+      print_track_t(p->FILTER.track_arg);
       for (size_t i = 0; i < p->FILTER.nb_options; i++) {
         printf("option: %s\n", p->FILTER.options[i].option_name);
         fflush(stdout);
