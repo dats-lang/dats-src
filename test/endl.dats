@@ -153,5 +153,5 @@ main {
   track tr1 = synth.sf2(m1)[preset=9];
   track tr2 = synth.sf2(m2)[preset=10];
   track tr3 = synth.sin(m3);
-  write("t.wav", mix((tr1), (tr2)));
+  write("t.wav", mix((0.6 tr1), (0.35 tr2), (0.15 tr3)));
 }

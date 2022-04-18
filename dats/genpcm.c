@@ -119,28 +119,27 @@ int gen_pcm16(dats_t *dats, track_t *ctx) {
     case 0:
       ctx->mono.pcm = malloc(src->mono.nb_samples * sizeof(int16_t));
       assert(ctx->mono.pcm != NULL);
-      memcpy(ctx->mono.pcm, src->mono.pcm,
-             src->mono.nb_samples * sizeof(int16_t));
+      memmix16(ctx->mono.pcm, src->mono.pcm, src->gain,
+                   src->mono.nb_samples);
       ctx->mono.nb_samples = src->mono.nb_samples;
       ctx->mono.play_end = src->mono.play_end;
       break;
     case 1:
-      ctx->stereo.lpcm = malloc(src->stereo.lnb_samples * sizeof(int16_t));
+      ctx->stereo.lpcm = calloc(src->stereo.lnb_samples, sizeof(int16_t));
       assert(ctx->stereo.lpcm != NULL);
-      memcpy(ctx->stereo.lpcm, src->stereo.lpcm,
-             src->stereo.lnb_samples * sizeof(int16_t));
+      memmix16(ctx->stereo.lpcm, src->stereo.lpcm, src->gain,
+                   src->stereo.lnb_samples);
       ctx->stereo.lnb_samples = src->stereo.lnb_samples;
       ctx->stereo.lplay_end = src->stereo.lplay_end;
 
-      ctx->stereo.rpcm = malloc(src->stereo.rnb_samples * sizeof(int16_t));
+      ctx->stereo.rpcm = calloc(src->stereo.rnb_samples, sizeof(int16_t));
       assert(ctx->stereo.rpcm != NULL);
-      memcpy(ctx->stereo.rpcm, src->stereo.rpcm,
-             src->stereo.rnb_samples * sizeof(int16_t));
+      memmix16(ctx->stereo.rpcm, src->stereo.rpcm, src->gain,
+                   src->stereo.rnb_samples);
       ctx->stereo.rnb_samples = src->stereo.rnb_samples;
       ctx->stereo.rplay_end = src->stereo.rplay_end;
       break;
     }
-    ctx->gain = src->gain;
   } break;
   case MIX:
     for (uint32_t i = 0; i < ctx->MIX.nb_pcm16; i++)
