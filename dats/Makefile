@@ -32,6 +32,10 @@ ifeq ($(ENABLE_OPENMP), yes)
 	LDFLAGS += -fopenmp
 endif
 
+ifeq ($(OS), Windows_NT)
+	LDFLAGS += -Wl,--stack,8388608 # 8 MiB
+endif
+
 .PHONY : clean test indent
 
 dats :$(OBJ)

@@ -15,9 +15,9 @@ static DSOption options[] = {
    {DSOPTION_FLOAT, "sustain_type", "Sustain type (linear=0, exponential=1)", {.floatv = 0}},
    {DSOPTION_FLOAT, "release_type", "Release type (linear=0, exponential=1)", {.floatv = 0}},
    {DSOPTION_FLOAT, "attack_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
-   {DSOPTION_FLOAT, "decay_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
-   {DSOPTION_FLOAT, "sustain_exp_coeff", "Attack exponential coefficiant", {.floatv = 0.0}},
-   {DSOPTION_FLOAT, "release_exp_coeff", "Decay exponential coefficiant", {.floatv = 0.0}},
+   {DSOPTION_FLOAT, "decay_exp_coeff", "Decay exponential coefficiant", {.floatv = 0.0}},
+   {DSOPTION_FLOAT, "sustain_exp_coeff", "Sustain exponential coefficiant", {.floatv = 0.0}},
+   {DSOPTION_FLOAT, "release_exp_coeff", "Release exponential coefficiant", {.floatv = 0.0}},
    /*{DSOPTION_FLOAT, "attack_s", "Attack ending in samples", {.intv = 0}},
    {DSOPTION_FLOAT, "decay_s", "Decay begin in samples", {.intv=  0}},*/
    {.option_name = NULL}

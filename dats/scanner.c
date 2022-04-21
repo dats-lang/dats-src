@@ -24,7 +24,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "dats.h"
 //#include <sys/ioctl.h>
 #define DEFINE_SCANNER_VARIABLES
 #include "scanner.h"
@@ -113,6 +113,8 @@ void clean_bnr(bnr_t *bnr) {
     } break;
     case SYM_BLOCK:
       clean_bnr(nr->block);
+      break;
+    default:
       break;
     }
     free(nr);

@@ -18,6 +18,13 @@ ifeq ($(ENABLE_OPENMP), yes)
 	LDFLAGS += -fopenmp
 endif
 
+ifeq ($(OS), Windows_NT)
+	LDFLAGS += -Wl,--out-implib,libdsynth.a
+	TARGET = libdsynth.dll
+else
+	TARGET = libdsynth.so
+endif
+
 MISC = sf2.c allsynth.c utils.c
 
 S_SYNTHS += s_kpa.c
@@ -28,7 +35,7 @@ S_SYNTHS += s_sf2.c
 
 OBJ := $(patsubst %.c, %.o, $(S_SYNTHS) $(MISC))
 
-libdsynth.so : $(OBJ)
+$(TARGET): $(OBJ)
 	$(CC) -shared $^ -lm -lfluidsynth -o $@ $(LDFLAGS)
 
 $(OBJ): %.o: %.c $(wildcard *.h)

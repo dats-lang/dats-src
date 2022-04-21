@@ -184,8 +184,11 @@ int semantic_cur_dats_t(dats_t *d) {
     case TOK_WRITE:
       (void)semantic_track_t(d, n, n->value.write.track);
       break;
+    default: break;
     }
   }
+  fclose(d->fp);
+  d->fp = NULL;
 
   if (local_errors)
     err = 1;

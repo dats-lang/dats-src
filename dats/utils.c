@@ -10,6 +10,9 @@ void print_all_nr_t(nr_t *nr) {
     case SYM_REST:
       printf("REST length: %u\n", p->length);
       break;
+    case SYM_BLOCK:
+      printf("BLOCK\n");
+      break;
     }
   }
 }
@@ -17,7 +20,7 @@ void print_all_nr_t(nr_t *nr) {
 void print_track_t(track_t *const track) {
   if (track == NULL)
     return;
-  puts("PCM16");
+  puts("TRACK");
   int ctr = 0;
   for (track_t *p = track; p != NULL; p = p->next) {
     printf("%s: %d\n", __func__, ctr++);
@@ -40,6 +43,13 @@ void print_track_t(track_t *const track) {
         fflush(stdout);
       }
       break;
+    case MIX:
+      printf("MIX %d\n", p->MIX.nb_track);
+      for (size_t i = 0; i < p->MIX.nb_track; i++) {
+        printf("arg %d: %p\n", i, p->MIX.track[i]);
+        fflush(stdout);
+        break;
+      }
     }
   }
 }

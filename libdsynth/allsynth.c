@@ -10,7 +10,7 @@ extern DSSynth ss_sf2;
 
 #include "list_synths.c"
 
-DSSynth *get_dsynth_by_name(const char *name) {
+const DSSynth *get_dsynth_by_name(const char *name) {
 
   if (!*name || name == NULL)
     return NULL;

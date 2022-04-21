@@ -5,7 +5,7 @@ Dependencies
 fluidsynth (tested on v2.2.3)
 
 Dats pre-contain an sf2 file. This can be copied to
-/usr/share/soundfonts
+/usr/share/soundfonts or in windows C:\soundfonts
 
 Unix
 =====

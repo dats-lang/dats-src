@@ -47,13 +47,12 @@ int gen_track(dats_t *dats, track_t *ctx) {
     break;
   }
 
-  DSSynth *synth_ctx = NULL;
   DFFilter *filter_ctx = NULL;
   if (ctx == NULL)
     return 1;
   switch (ctx->type) {
-  case SYNTH:
-    synth_ctx = get_dsynth_by_name(ctx->SYNTH.synth_name);
+  case SYNTH:{
+    const DSSynth *synth_ctx = get_dsynth_by_name(ctx->SYNTH.synth_name);
     for (int op = 0; op < ctx->SYNTH.nb_options; op++) {
       int ctr = 0;
       while (synth_ctx->options[ctr].option_name != NULL) {
@@ -81,6 +80,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
     if (synth_func(getsym(dats, ctx->SYNTH.staff_name), ctx)) {
       printf("ERROR -->\n");
       return 1;
+    }
     }
     break;
   case FILTER:

@@ -18,11 +18,18 @@ ifeq ($(ENABLE_OPENMP), yes)
 	LDFLAGS += -fopenmp
 endif
 
+ifeq ($(OS), Windows_NT)
+	LDFLAGS += -Wl,--out-implib,libdfilter.a
+	TARGET = libdfilter.dll
+else
+	TARGET = libdfilter.so
+endif
+
 F_FILTER += f_reverb.c
 
 OBJ := $(patsubst %.c, %.o, $(F_FILTER) allfilter.c)
 
-libdfilter.so : $(OBJ)
+$(TARGET): $(OBJ)
 	$(CC) -shared $^ -o $@ $(LDFLAGS)
 
 $(OBJ): %.o: %.c $(wildcard *.h)

@@ -123,6 +123,7 @@ add_block:
       f = f->next;
       goto addn;
     }
+    default: break;
     }
 
     f->next = NULL;
@@ -478,7 +479,7 @@ static int parse_staff() {
   return 0;
 }
 
-#define PARSE_PCM16_MAX_CALLS 64
+#define PARSE_TRACK_MAX_CALLS 64
 static track_t *parse_track_tail(track_t *track_head, track_t *track_tail) {
   /* To prevent recursive calls which would eventually crash because of the
    * limitation of the stack, recursive calls are simulated by recording the
@@ -487,17 +488,17 @@ static track_t *parse_track_tail(track_t *track_head, track_t *track_tail) {
   int nb_calls = 0; /* The number of recursive calls */
 
   /* Its previous arguments */
-  track_t *prev_trackh[PARSE_PCM16_MAX_CALLS] = {NULL},
-          *prev_trackt[PARSE_PCM16_MAX_CALLS] = {NULL};
+  track_t *prev_trackh[PARSE_TRACK_MAX_CALLS] = {NULL},
+          *prev_trackt[PARSE_TRACK_MAX_CALLS] = {NULL};
 
   /* and where is its previous caller*/
-  track_type_t calls[PARSE_PCM16_MAX_CALLS] = {0};
+  track_type_t calls[PARSE_TRACK_MAX_CALLS] = {0};
 
   char track_type = track_head->track_type;
 append:
-  if (nb_calls == PARSE_PCM16_MAX_CALLS) {
+  if (nb_calls == PARSE_TRACK_MAX_CALLS) {
     C_ERROR(d, "%d maximum calls has reached. Killing self\n",
-            PARSE_PCM16_MAX_CALLS);
+            PARSE_TRACK_MAX_CALLS);
     print_quote(1, NULL, NULL); /* self killed */
   }
 
@@ -910,6 +911,7 @@ append:
       case MIX:
         printf("[debug] stack #%d mix\n", i);
         break;
+      default: break;
       }
     }
     destroy_track_t(track_head);
@@ -921,6 +923,7 @@ append:
       goto FILTER;
     case MIX:
       goto MIX;
+    default: break;
     }
   }
   return track_head;
