@@ -26,7 +26,7 @@ EXTERN token_t read_next_tok(dats_t *const t);
 EXTERN void print_all_symrec_t_cur_dats_t(const dats_t *const t);
 EXTERN void print_debugging_info(const token_t tok, dats_t *d);
 EXTERN void print_scan_line(FILE *, const uint32_t, const uint32_t);
-EXTERN void destroy_track_t(track_t *);
+EXTERN void destroy_track(track_t *);
 
 EXTERN uint32_t line_token_found;
 EXTERN uint32_t column_token_found;
@@ -62,13 +62,13 @@ EXTERN dats_t *dats_files;
 #define COLOR_OFF
 #endif
 
-#define ERROR(...) fprintf(stderr, __VA_ARGS__)
+#define DATS_ERROR(...) fprintf(stderr, __VA_ARGS__)
 
 #define UNEXPECTED(x, d)                                                       \
   {                                                                            \
     local_errors++;                                                            \
     if (x != TOK_ERR) {                                                        \
-      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON           \
+      DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON           \
             "error" COLOR_OFF ": unexpected %s",                               \
             __FILE__, __LINE__, __func__, d->fname, line_token_found,          \
             column_token_found, token_t_to_str(x));                            \
@@ -77,7 +77,7 @@ EXTERN dats_t *dats_files;
   }
 
 #define WARNING(str)                                                           \
-  ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON               \
+  DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON               \
         "warning" COLOR_OFF ": %s",                                            \
         __FILE__, __LINE__, __func__, d->fname, line_token_found,              \
         column_token_found + 1, str)
@@ -85,21 +85,21 @@ EXTERN dats_t *dats_files;
 #define SEMANTIC(d, line, column, ...)                                         \
   {                                                                            \
     local_errors++;                                                            \
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON             \
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON             \
           "error" COLOR_OFF ": ",                                              \
           __FILE__, __LINE__, __func__, d->fname, line, column);               \
-    ERROR(__VA_ARGS__);                                                        \
+    DATS_ERROR(__VA_ARGS__);                                                        \
     print_scan_line(d->fp, line, column);                                      \
   }
 
-#define C_ERROR(d, ...)                                                        \
+#define CUSTOM_ERROR(d, ...)                                                        \
   {                                                                            \
     local_errors++;                                                            \
-    ERROR("[" GREEN_ON "%s:%d@ %s" COLOR_OFF "] %s:%" PRIu32                   \
+    DATS_ERROR("[" GREEN_ON "%s:%d@ %s" COLOR_OFF "] %s:%" PRIu32                   \
           ":%" PRIu32 RED_ON "error" COLOR_OFF ": ",                           \
           __FILE__, __LINE__, __func__, d->fname, line_token_found,            \
           column_token_found);                                                 \
-    ERROR(__VA_ARGS__);                                                        \
+    DATS_ERROR(__VA_ARGS__);                                                        \
     print_debugging_info(TOK_NULL, d);                                         \
   }
 
@@ -107,7 +107,7 @@ EXTERN dats_t *dats_files;
   {                                                                            \
     local_errors++;                                                            \
     if (x != TOK_ERR)                                                          \
-      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%" PRIu32                \
+      DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%" PRIu32                \
             ":%" PRIu32 RED_ON "error" COLOR_OFF ": expecting %s",             \
             __FILE__, __LINE__, __func__, d->fname, line_token_found,          \
             column_token_found, token_t_to_str(x));                            \
@@ -116,9 +116,9 @@ EXTERN dats_t *dats_files;
 
 #define REPORT(...)                                                            \
   {                                                                            \
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] ", __FILE__, __LINE__,        \
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] ", __FILE__, __LINE__,        \
           __func__);                                                           \
-    ERROR(__VA_ARGS__);                                                        \
+    DATS_ERROR(__VA_ARGS__);                                                        \
   }
 
 #endif /* SCANNER_H */

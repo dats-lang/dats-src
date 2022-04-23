@@ -207,7 +207,7 @@ struct track_t {
 typedef struct symrec_t symrec_t;
 struct symrec_t {
   token_t type;
-  size_t line, column;
+  uint32_t line, column;
   union {
     struct {
       char *identifier;

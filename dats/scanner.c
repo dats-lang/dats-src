@@ -40,7 +40,7 @@ void clean_all_dats_t(void) {
     p = n->next;
     if (n->fp != NULL)
       if (EOF == fclose(n->fp)) {
-        ERROR("warning: ");
+        DATS_ERROR("warning: ");
         perror(n->fname);
       }
     free(n->fname);
@@ -51,7 +51,7 @@ void clean_all_dats_t(void) {
   dats_files = NULL;
 }
 
-void destroy_track_t(track_t *track) {
+void destroy_track(track_t *track) {
   if (track == NULL)
     return;
   track_t *n;
@@ -63,7 +63,7 @@ void destroy_track_t(track_t *track) {
       break;
     case MIX:
       for (uint32_t i = 0; i < a->MIX.nb_track; i++)
-        destroy_track_t(a->MIX.track[i]);
+        destroy_track(a->MIX.track[i]);
       free(a->MIX.track);
       break;
     case FILTER:
@@ -73,7 +73,7 @@ void destroy_track_t(track_t *track) {
         if (a->FILTER.options[i].is_strv)
           free(a->FILTER.options[i].strv);
       }
-      destroy_track_t(a->FILTER.track_arg);
+      destroy_track(a->FILTER.track_arg);
       break;
     case SYNTH:
       free(a->SYNTH.synth_name);
@@ -146,14 +146,14 @@ void clean_all_symrec_t_all_dats_t() {
       } break;
       case TOK_TRACK:
         free(p->value.track.identifier);
-        destroy_track_t(p->value.track.track);
+        destroy_track(p->value.track.track);
         break;
       case TOK_WRITE:
         free(p->value.write.out_file);
-        destroy_track_t(p->value.write.track);
+        destroy_track(p->value.write.track);
         break;
       default:
-        ERROR("UNKNOWN TYPE %d\n", p->type);
+        DATS_ERROR("UNKNOWN TYPE %d\n", p->type);
       }
       free(p);
     }
@@ -184,13 +184,13 @@ symrec_t *getsym(const dats_t *const t, char const *const id) {
 void print_debugging_info(const token_t tok, dats_t *d) {
   switch (tok) {
   case TOK_IDENTIFIER:
-    ERROR(", '%s'\n", tok_identifier);
+    DATS_ERROR(", '%s'\n", tok_identifier);
     break;
   case TOK_FLOAT:
-    ERROR(", %f\n", tok_num);
+    DATS_ERROR(", %f\n", tok_num);
     break;
   default:
-    ERROR("\n");
+    DATS_ERROR("\n");
   }
 
   print_scan_line(d->fp, line_token_found, column_token_found);
@@ -224,8 +224,8 @@ void print_scan_line(FILE *fp, const uint32_t line, const uint32_t column) {
   }
 
   int length = sprintf(buff, "    %d | %s", line, scan_line);
-  ERROR("%s", buff);
-  ERROR("%*s\n", column + (length - (int)strlen(scan_line)), "^");
+  DATS_ERROR("%s", buff);
+  DATS_ERROR("%*s\n", column + (length - (int)strlen(scan_line)), "^");
   fseek(fp, look, SEEK_SET);
 }
 
@@ -291,7 +291,7 @@ w:
     }
   }
   if (expecting == TOK_STRING) {
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
           "error" COLOR_OFF ": Too long string\n",
           __FILE__, __LINE__, __func__, d->fname, line_token_found,
           column_token_found);
@@ -335,11 +335,11 @@ w:
       }
       // strcpy(d->scan_line, prev_line);
       local_errors++;
-      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+      DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
             "error" COLOR_OFF ": ",
             __FILE__, __LINE__, __func__, d->fname, line_token_found,
             column_token_found);
-      ERROR("unterminated multi-line comment\n");
+      DATS_ERROR("unterminated multi-line comment\n");
       print_scan_line(d->fp, line_token_found, column_token_found);
       return TOK_ERR;
     }
@@ -420,11 +420,11 @@ w:
           break;
         default:
           local_errors++;
-          ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+          DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
                 "error" COLOR_OFF ": ",
                 __FILE__, __LINE__, __func__, d->fname, line_token_found,
                 column_token_found);
-          ERROR("illegal key\n");
+          DATS_ERROR("illegal key\n");
           print_scan_line(d->fp, line_token_found, column_token_found);
           return TOK_ERR;
         }
@@ -444,22 +444,22 @@ w:
           tok_num *= pow(2.0, strtof(buff + 2, &end));
           tok_note = tok_note + 0x0c * strtof(buff + 2, &end);
           if (*end)
-            ERROR("Warning: non numeric character/s %s\n", end);
+            DATS_ERROR("Warning: non numeric character/s %s\n", end);
           return TOK_NOTE;
         } else if (isdigit(buff[1]) && !buff[2]) {
           char *end;
           tok_num *= pow(2.0, strtof(buff + 1, &end));
           tok_note = tok_note + 0x0c * strtof(buff + 1, &end);
           if (*end)
-            ERROR("Warning: non numeric character/s %s\n", end);
+            DATS_ERROR("Warning: non numeric character/s %s\n", end);
           return TOK_NOTE;
         } else
           local_errors++;
-        ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+        DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
               "error" COLOR_OFF ": ",
               __FILE__, __LINE__, __func__, d->fname, line_token_found,
               column_token_found);
-        ERROR("illegal key\n");
+        DATS_ERROR("illegal key\n");
         print_scan_line(d->fp, line_token_found, column_token_found);
         return TOK_ERR;
 
@@ -651,18 +651,18 @@ w:
     return TOK_EOF;
   default:
     local_errors++;
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
           "error" COLOR_OFF ": ",
           __FILE__, __LINE__, __func__, d->fname, line_token_found,
           column_token_found);
-    ERROR("illegal symbol");
+    DATS_ERROR("illegal symbol");
     print_scan_line(d->fp, line_token_found, column_token_found);
     fseek(d->fp, cur, SEEK_SET);
     return TOK_ERR;
   }
 
   fclose(d->fp);
-  ERROR("It seems that a crash has occured... please notify the maintainer with"
+  DATS_ERROR("It seems that a crash has occured... please notify the maintainer with"
         "this crash on https://github.com/harieamjari/dats\n");
   exit(1);
 }
@@ -724,7 +724,7 @@ w:
     }
   }
   if (expecting == TOK_STRING) {
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
           "error" COLOR_OFF ": Too long string\n",
           __FILE__, __LINE__, __func__, d->fname, line_token_found,
           column_token_found);
@@ -775,11 +775,11 @@ w:
       }
       strcpy(d->scan_line, prev_line);
       local_errors++;
-      ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+      DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
             "error" COLOR_OFF ": ",
             __FILE__, __LINE__, __func__, d->fname, line_token_found,
             column_token_found);
-      ERROR("unterminated multi-line comment");
+      DATS_ERROR("unterminated multi-line comment");
       print_debugging_info(TOK_NULL, d);
       return TOK_ERR;
     }
@@ -852,11 +852,11 @@ w:
           break;
         default:
           local_errors++;
-          ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+          DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
                 "error" COLOR_OFF ": ",
                 __FILE__, __LINE__, __func__, d->fname, line_token_found,
                 column_token_found);
-          ERROR("illegal key");
+          DATS_ERROR("illegal key");
           print_debugging_info(TOK_NULL, d);
           return TOK_ERR;
         }
@@ -876,22 +876,22 @@ w:
           tok_num *= pow(2.0, strtof(buff + 2, &end));
           tok_note = tok_note + 0x0c * strtof(buff + 2, &end);
           if (*end)
-            ERROR("Warning: non numeric character/s %s\n", end);
+            DATS_ERROR("Warning: non numeric character/s %s\n", end);
           return TOK_NOTE;
         } else if (isdigit(buff[1]) && !buff[2]) {
           char *end;
           tok_num *= pow(2.0, strtof(buff + 1, &end));
           tok_note = tok_note + 0x0c * strtof(buff + 1, &end);
           if (*end)
-            ERROR("Warning: non numeric character/s %s\n", end);
+            DATS_ERROR("Warning: non numeric character/s %s\n", end);
           return TOK_NOTE;
         } else
           local_errors++;
-        ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+        DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
               "error" COLOR_OFF ": ",
               __FILE__, __LINE__, __func__, d->fname, line_token_found,
               column_token_found);
-        ERROR("illegal key");
+        DATS_ERROR("illegal key");
         print_debugging_info(TOK_NULL, d);
         return TOK_ERR;
 
@@ -1082,17 +1082,17 @@ w:
     return TOK_EOF;
   default:
     local_errors++;
-    ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
+    DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
           "error" COLOR_OFF ": ",
           __FILE__, __LINE__, __func__, d->fname, line_token_found,
           column_token_found);
-    ERROR("illegal symbol");
+    DATS_ERROR("illegal symbol");
     print_debugging_info(TOK_NULL, d);
     return TOK_ERR;
   }
 
   fclose(d->fp);
-  ERROR("SYSTEM ERROR!!!\n");
+  DATS_ERROR("SYSTEM ERROR!!!\n");
   return TOK_ERR;
 }
 

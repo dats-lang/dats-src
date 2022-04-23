@@ -19,26 +19,34 @@
 #include <unistd.h>
 
 const uint32_t nb_quotes = 346;
+static uint32_t i = 0;
 
 typedef struct quote_t quote_t;
 struct quote_t {
   char *quote;
 };
+
 static const quote_t quotes[] = {
-#include "quotes.txt"
+  #include "quotes.txt"
 };
-static uint32_t i = 0;
-void print_quote(int sig, siginfo_t *info, void *ucontext) {
-  write(2, "Segmentation fault\n", 19);
+
+void dats_print_quote(void){
   write(2, quotes[i].quote, strlen(quotes[i].quote));
+}
+
+void dats_exit_handler(int sig, siginfo_t *info, void *ucontext) {
+  write(2, "Segmentation fault\n", 19);
+  dats_print_quote();
   _exit(sig);
 }
 
+#ifndef _WIN32
 void register_deadquote(void) {
   srand(time(NULL));
   i = (uint32_t)rand() % nb_quotes;
   struct sigaction sa = {0};
-  sa.sa_sigaction = &print_quote;
+  sa.sa_sigaction = &dats_exit_handler;
   sa.sa_flags = SA_SIGINFO;
   sigaction(SIGSEGV, &sa, NULL);
 }
+#endif

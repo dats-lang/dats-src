@@ -25,7 +25,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern void print_quote(int, void *, void *);
+#ifndef _WIN32
+extern void dats_exit_handler(int, void *, void *);
+#else
+extern void print_quote(void);
+#endif
 
 #include "scanner.h"
 
@@ -44,6 +48,8 @@ static dats_t *d;
 static int parse_notes_rests(bnr_t *blk) {
   static int nb_blk = 0;
   static bnr_t *prev_blk[MAX_BLOCK] = {0};
+  static nr_t *prev_cnr_end[MAX_BLOCK] = {0};
+  static nr_t *cnr_end = NULL;
 
 add_block:
   if (tok == TOK_N) {
@@ -130,15 +136,12 @@ add_block:
     cnr->note = n;
 
     if (blk->nr != NULL) {
-      for (nr_t *p = blk->nr; 1; p = p->next) {
-        if (p->next == NULL) {
-          p->next = cnr;
-          cnr->next = NULL;
-          break;
-        }
-      }
-    } else
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    } else {
       blk->nr = cnr;
+      cnr_end = cnr;
+    }
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -172,18 +175,16 @@ add_block:
       goto add_lengthr;
     default:;
     }
-    // staff->value.staff.nb_samples += cnr->length;
     blk->nb_samples += cnr->length;
 
-    if (blk->nr != NULL)
-      for (nr_t *p = blk->nr; 1; p = p->next) {
-        if (p->next == NULL) {
-          p->next = cnr;
-          break;
-        }
-      }
-    else
+    if (blk->nr != NULL){
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    }
+    else {
       blk->nr = cnr;
+      cnr_end = cnr;
+    }
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -307,7 +308,7 @@ add_block:
     }
     tok_octave = tok_num;
     if (tok_octave > 3 || tok_octave < -3) {
-      C_ERROR(d, "Illegal range, (-3 to 3)");
+      CUSTOM_ERROR(d, "Illegal range, (-3 to 3)");
       return 1;
     }
     rule_match = 1;
@@ -331,7 +332,7 @@ add_block:
     }
     tok_semitone = tok_num;
     //    if (tok_semitone>1 || tok_semitone<-1){
-    //      C_ERROR(d, "Illegal range, (-1 to 1)");
+    //      CUSTOM_ERROR(d, "Illegal range, (-1 to 1)");
     //      return 1;
     //    }
     rule_match = 1;
@@ -381,6 +382,7 @@ add_block:
     block->nb_samples = 0;
     block->nr = NULL;
     prev_blk[nb_blk] = blk;
+    prev_cnr_end[nb_blk] = cnr_end;
     nb_blk++;
 
     nr_t *cnr = malloc(sizeof(nr_t));
@@ -389,15 +391,14 @@ add_block:
     cnr->block = block;
     cnr->next = NULL;
 
-    if (blk->nr != NULL)
-      for (nr_t *p = blk->nr; 1; p = p->next) {
-        if (p->next == NULL) {
-          p->next = cnr;
-          break;
-        }
-      }
-    else
+    if (blk->nr != NULL){
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    }
+    else {
       blk->nr = cnr;
+      cnr_end = cnr;
+    }
 
     blk = block;
     tok = read_next_tok(d);
@@ -408,6 +409,7 @@ add_block:
     prev_blk[nb_blk]->nb_samples +=
         (uint32_t)(blk->block_repeat + 1) * blk->nb_samples;
     blk = prev_blk[nb_blk];
+    cnr_end = prev_cnr_end[nb_blk];
 
   } else
     return 0;
@@ -497,9 +499,14 @@ static track_t *parse_track_tail(track_t *track_head, track_t *track_tail) {
   char track_type = track_head->track_type;
 append:
   if (nb_calls == PARSE_TRACK_MAX_CALLS) {
-    C_ERROR(d, "%d maximum calls has reached. Killing self\n",
+    CUSTOM_ERROR(d, "%d maximum calls has reached. Killing self\n",
             PARSE_TRACK_MAX_CALLS);
-    print_quote(1, NULL, NULL); /* self killed */
+#ifndef _WIN32
+    dats_exit_handler(1, NULL, NULL); /* self killed */
+#else
+    dats_print_quote();
+    exit(1);
+#endif
   }
 
   track_tail->track_type = track_type;
@@ -529,13 +536,13 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_DOT) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     tok = read_next_tok(d);
     if (tok != TOK_IDENTIFIER) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     track_tail->type = SYNTH;
@@ -550,14 +557,14 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
 
     tok = read_next_tok(d);
     if (tok != TOK_IDENTIFIER) {
       EXPECTING(TOK_IDENTIFIER, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     track_tail->SYNTH.staff_line = line_token_found;
@@ -568,7 +575,7 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_RPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
 
@@ -578,8 +585,8 @@ append:
       do {
         tok = read_next_tok(d);
         if (tok != TOK_IDENTIFIER) {
-          C_ERROR(d, "Expecting options\n");
-          destroy_track_t(track_head);
+          CUSTOM_ERROR(d, "Expecting options\n");
+          destroy_track(track_head);
           return NULL;
         }
         const size_t option_size = sizeof(synth_option_t);
@@ -595,7 +602,7 @@ append:
         tok = read_next_tok(d);
         if (tok != TOK_EQUAL) {
           EXPECTING(TOK_EQUAL, d);
-          destroy_track_t(track_head);
+          destroy_track(track_head);
           return NULL;
         }
         tok = read_next_tok(d);
@@ -608,8 +615,8 @@ append:
           break;
         default:
           if (tok != TOK_DQUOTE) {
-            C_ERROR(d, "Option expects a string, '\"'");
-            destroy_track_t(track_head);
+            CUSTOM_ERROR(d, "Option expects a string, '\"'");
+            destroy_track(track_head);
             return NULL;
           }
           expecting = TOK_STRING;
@@ -621,8 +628,8 @@ append:
           tok_identifier = NULL;
           tok = read_next_tok(d);
           if (tok != TOK_DQUOTE) {
-            C_ERROR(d, "Strings must end with a double quote");
-            destroy_track_t(track_head);
+            CUSTOM_ERROR(d, "Strings must end with a double quote");
+            destroy_track(track_head);
             return NULL;
           }
           tok = read_next_tok(d);
@@ -633,7 +640,7 @@ append:
       track_tail->SYNTH.nb_options = nb_options - 1;
       if (tok != TOK_RBRACKET) {
         EXPECTING(TOK_RBRACKET, d);
-        destroy_track_t(track_head);
+        destroy_track(track_head);
         return NULL;
       }
       tok = read_next_tok(d);
@@ -666,7 +673,7 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     track_tail->type = MIX;
@@ -680,7 +687,7 @@ append:
       tok = read_next_tok(d);
       if (tok != TOK_LPAREN) {
         UNEXPECTED(tok, d);
-        destroy_track_t(track_head);
+        destroy_track(track_head);
         return NULL;
       }
       track_tail->MIX.nb_track++;
@@ -728,14 +735,14 @@ append:
 
       if (tok != TOK_RPAREN) {
         UNEXPECTED(tok, d);
-        destroy_track_t(track_head);
+        destroy_track(track_head);
         return NULL;
       }
       tok = read_next_tok(d);
     } while (tok == TOK_COMMA);
     if (tok != TOK_RPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     track_tail->MIX.track = track_tail->MIX.track;
@@ -753,13 +760,13 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_DOT) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     tok = read_next_tok(d);
     if (tok != TOK_IDENTIFIER) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
     track_tail->type = FILTER;
@@ -775,7 +782,7 @@ append:
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
 
@@ -820,13 +827,13 @@ append:
     track_head = prev_trackh[nb_calls];
 
     if (track_tail->FILTER.track_arg == NULL) {
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
 
     if (tok != TOK_RPAREN) {
       UNEXPECTED(tok, d);
-      destroy_track_t(track_head);
+      destroy_track(track_head);
       return NULL;
     }
 
@@ -836,8 +843,8 @@ append:
       do {
         tok = read_next_tok(d);
         if (tok != TOK_IDENTIFIER) {
-          C_ERROR(d, "Expecting options\n");
-          destroy_track_t(track_head);
+          CUSTOM_ERROR(d, "Expecting options\n");
+          destroy_track(track_head);
           return NULL;
         }
         const size_t option_size = sizeof(filter_option_t);
@@ -849,7 +856,7 @@ append:
         tok = read_next_tok(d);
         if (tok != TOK_EQUAL) {
           EXPECTING(TOK_EQUAL, d);
-          destroy_track_t(track_head);
+          destroy_track(track_head);
           return NULL;
         }
         tok = read_next_tok(d);
@@ -862,8 +869,8 @@ append:
           break;
         default:
           if (tok != TOK_DQUOTE) {
-            C_ERROR(d, "Option expects a string, '\"'");
-            destroy_track_t(track_head);
+            CUSTOM_ERROR(d, "Option expects a string, '\"'");
+            destroy_track(track_head);
             return NULL;
           }
           expecting = TOK_STRING;
@@ -875,8 +882,8 @@ append:
           tok_identifier = NULL;
           tok = read_next_tok(d);
           if (tok != TOK_DQUOTE) {
-            C_ERROR(d, "Strings must end with a double quote");
-            destroy_track_t(track_head);
+            CUSTOM_ERROR(d, "Strings must end with a double quote");
+            destroy_track(track_head);
             return NULL;
           }
           tok = read_next_tok(d);
@@ -887,7 +894,7 @@ append:
       track_tail->FILTER.nb_options = nb_options - 1;
       if (tok != TOK_RBRACKET) {
         EXPECTING(TOK_RBRACKET, d);
-        destroy_track_t(track_head);
+        destroy_track(track_head);
         return NULL;
       }
       tok = read_next_tok(d);
@@ -914,7 +921,7 @@ append:
       default: break;
       }
     }
-    destroy_track_t(track_head);
+    destroy_track(track_head);
     return NULL;
   }
   if (nb_calls != 0) {
@@ -1008,7 +1015,7 @@ static int parse_stmt() {
 
     tok = read_next_tok(d);
     if (tok != TOK_DQUOTE) {
-      C_ERROR(d, "`write`, expects an identifier between double quote\n");
+      CUSTOM_ERROR(d, "`write`, expects an identifier between double quote\n");
       return 1;
     }
     expecting = TOK_STRING;
@@ -1045,7 +1052,7 @@ static int parse_stmt() {
 
     tok = read_next_tok(d);
     if (tok != TOK_DQUOTE) {
-      C_ERROR(d, "Identifier must end with a double quote\n");
+      CUSTOM_ERROR(d, "Identifier must end with a double quote\n");
       return 1;
     }
 
@@ -1133,7 +1140,7 @@ int parse_cur_dats_t(dats_t *const t) {
   while (1) {
     tok = read_next_tok(d);
     if (start()) {
-      ERROR("%d local errors generated\n", local_errors);
+      DATS_ERROR("%d local errors generated\n", local_errors);
       global_errors += local_errors;
       local_errors = 0;
       free(tok_identifier);
@@ -1143,8 +1150,6 @@ int parse_cur_dats_t(dats_t *const t) {
     if (tok == TOK_EOF)
       break;
   }
-  /*printf("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s: parsing successful\n",
-         __FILE__, __LINE__, __func__, d->fname);+*/
 
   return local_errors;
 }

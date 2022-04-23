@@ -25,7 +25,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifndef _WIN32
 extern void register_deadquote(void);
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -46,7 +48,7 @@ extern int exec_write(dats_t *);
  */
 int process_args(const int argc, char *const *argv) {
   if (argc == 1) {
-    ERROR("No argument supplied!\nUse --help to print help\n");
+    DATS_ERROR("No argument supplied!\nUse --help to print help\n");
     return 1;
   }
   FILE *fp;
@@ -83,7 +85,7 @@ int process_args(const int argc, char *const *argv) {
           return 0;
         }
       }
-      ERROR(RED_ON "error" COLOR_OFF ": unknown option '%s'\n", argv[i]);
+      DATS_ERROR(RED_ON "error" COLOR_OFF ": unknown option '%s'\n", argv[i]);
       global_errors++;
       break;
     default:
@@ -152,7 +154,7 @@ int main(int argc, char **argv) {
     goto err;
 err:
   if (global_errors)
-    ERROR("\n%d global errors generated\n", global_errors);
+    DATS_ERROR("\n%d global errors generated\n", global_errors);
 
   clean_all_symrec_t_all_dats_t();
   clean_all_dats_t();
