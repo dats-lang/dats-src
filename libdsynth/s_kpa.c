@@ -69,6 +69,8 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
       return 1;
     }
     write_block(lpcm, NULL, staff->value.staff.bnr, write_note);
+    if (1)
+      putchar('\n');
     write_block(rpcm, NULL, staff->value.staff.bnr, write_note);
     break;
   }

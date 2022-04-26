@@ -34,6 +34,7 @@ extern void print_quote(void);
 #include "scanner.h"
 
 extern void print_all_nr_t(nr_t *nr);
+extern int enable_debug;
 
 static token_t tok;
 static symrec_t *staff;
@@ -46,12 +47,13 @@ static dats_t *d;
       */
 /* Returns 0 if success. Non-zero if failed. */
 static int parse_notes_rests(bnr_t *blk) {
-  static int nb_blk = 0;
-  static bnr_t *prev_blk[MAX_BLOCK] = {0};
-  static nr_t *prev_cnr_end[MAX_BLOCK] = {0};
-  static nr_t *cnr_end = NULL;
+  int nb_blk = 0;
+  bnr_t *prev_blk[MAX_BLOCK] = {0};
+  nr_t *prev_cnr_end[MAX_BLOCK] = {0};
+  nr_t *cnr_end = NULL;
 
 add_block:
+  rule_match = 0;
   if (tok == TOK_N) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
@@ -135,7 +137,10 @@ add_block:
     f->next = NULL;
     cnr->note = n;
 
-    if (blk->nr != NULL) {
+    if (enable_debug){
+      DATS_ERROR("NOTE at %p; %p %p \n",(void*) blk, (void*)cnr_end, (void*)cnr);
+    }
+    if (cnr_end != NULL) {
       cnr_end->next = cnr;
       cnr_end = cnr;
     } else {
@@ -177,7 +182,10 @@ add_block:
     }
     blk->nb_samples += cnr->length;
 
-    if (blk->nr != NULL){
+    if (enable_debug){
+      DATS_ERROR("REST at %p; %p %p \n",(void*) blk, (void*)cnr_end, (void*)cnr);
+    }
+    if (cnr_end != NULL){
       cnr_end->next = cnr;
       cnr_end = cnr;
     }
@@ -381,9 +389,6 @@ add_block:
     block->block_repeat = (uint8_t)tok_num;
     block->nb_samples = 0;
     block->nr = NULL;
-    prev_blk[nb_blk] = blk;
-    prev_cnr_end[nb_blk] = cnr_end;
-    nb_blk++;
 
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
@@ -391,7 +396,7 @@ add_block:
     cnr->block = block;
     cnr->next = NULL;
 
-    if (blk->nr != NULL){
+    if (cnr_end != NULL){
       cnr_end->next = cnr;
       cnr_end = cnr;
     }
@@ -400,6 +405,11 @@ add_block:
       cnr_end = cnr;
     }
 
+    prev_blk[nb_blk] = blk;
+    prev_cnr_end[nb_blk] = cnr_end;
+    nb_blk++;
+    block->block_id = nb_blk;
+    cnr_end = NULL;
     blk = block;
     tok = read_next_tok(d);
     goto add_block;
@@ -411,6 +421,10 @@ add_block:
     blk = prev_blk[nb_blk];
     cnr_end = prev_cnr_end[nb_blk];
 
+    prev_blk[nb_blk] = NULL;
+    prev_cnr_end[nb_blk] = 0;
+    rule_match = 1;
+
   } else
     return 0;
 
@@ -419,6 +433,9 @@ add_block:
     goto end_block;
   if (nb_blk != 0)
     goto add_block;
+  if (rule_match){
+    goto add_block;
+  }
   return 0;
 }
 
@@ -453,6 +470,7 @@ static int parse_staff() {
   bnr_t *block = malloc(sizeof(bnr_t));
   assert(block != NULL);
   block->block_repeat = 0;
+  block->block_id = 0;
   block->nb_samples = 0;
   block->nr = NULL;
 
@@ -465,11 +483,8 @@ static int parse_staff() {
   }
 
   tok = read_next_tok(d);
-  do {
-    rule_match = 0;
-    if (parse_notes_rests(block))
-      return 1;
-  } while (rule_match);
+  if (parse_notes_rests(block))
+    return 1;
 
   staff->value.staff.nb_samples =
       (uint32_t)(block->block_repeat + 1) * block->nb_samples;

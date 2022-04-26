@@ -43,6 +43,7 @@ extern int parse_cur_dats_t(dats_t *const t);
 extern int semantic_cur_dats_t(dats_t const *const);
 extern int exec_write(dats_t *);
 
+int enable_debug = 0;
 /* process_args returns the value 0 if sucesss and nonzero if
  * failed.
  */
@@ -84,6 +85,10 @@ int process_args(const int argc, char *const *argv) {
           print_filters();
           return 0;
         }
+      }
+      if (argv[i][1] == 'd' && !argv[i][2]){
+        enable_debug = 1;
+        continue;
       }
       DATS_ERROR(RED_ON "error" COLOR_OFF ": unknown option '%s'\n", argv[i]);
       global_errors++;

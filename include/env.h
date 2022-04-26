@@ -154,12 +154,12 @@ struct track_t {
   union {
     struct {
       char *id;
-      size_t line, column;
+      uint32_t line, column;
     } ID;
     struct {
       uint32_t nb_track;
       track_t **track; // an array
-      size_t line, column;
+      uint32_t line, column;
     } MIX;
     struct {
       char *filter_name;
@@ -182,17 +182,17 @@ struct track_t {
       int16_t *pcm;
       uint32_t nb_samples;
       uint32_t play_end;
-    }mono;
+    } mono;
     struct {
       int16_t *lpcm, *rpcm;
       uint32_t lnb_samples, rnb_samples;
       uint32_t lplay_end, rplay_end;
-    }stereo;
+    } stereo;
   };
   float gain;
 
 /*  A play_end is suppose to mark the end of a playing.
- *  This is needed because the rest of it might just be
+ *  This is needed because the rest of pcm samples might just be
  *  reverberation. Like for example: If you stop playing,
  *  the instrument continues to attenuate. It does not
  *  immediately stop.
