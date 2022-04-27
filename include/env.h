@@ -115,6 +115,8 @@ struct nr_t {
   music_symbol type;
   union {
     struct {
+      uint32_t line, column;
+      char *id; /* for referencing to another staff */
       bnr_t *block;
     };
 

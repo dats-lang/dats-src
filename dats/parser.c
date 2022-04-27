@@ -131,14 +131,16 @@ add_block:
       f = f->next;
       goto addn;
     }
-    default: break;
+    default:
+      break;
     }
 
     f->next = NULL;
     cnr->note = n;
 
-    if (enable_debug){
-      DATS_ERROR("NOTE at %p; %p %p \n",(void*) blk, (void*)cnr_end, (void*)cnr);
+    if (enable_debug) {
+      DATS_ERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+                 (void *)cnr);
     }
     if (cnr_end != NULL) {
       cnr_end->next = cnr;
@@ -182,14 +184,14 @@ add_block:
     }
     blk->nb_samples += cnr->length;
 
-    if (enable_debug){
-      DATS_ERROR("REST at %p; %p %p \n",(void*) blk, (void*)cnr_end, (void*)cnr);
+    if (enable_debug) {
+      DATS_ERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+                 (void *)cnr);
     }
-    if (cnr_end != NULL){
+    if (cnr_end != NULL) {
       cnr_end->next = cnr;
       cnr_end = cnr;
-    }
-    else {
+    } else {
       blk->nr = cnr;
       cnr_end = cnr;
     }
@@ -394,13 +396,13 @@ add_block:
     assert(cnr != NULL);
     cnr->type = SYM_BLOCK;
     cnr->block = block;
+    cnr->id = NULL;
     cnr->next = NULL;
 
-    if (cnr_end != NULL){
+    if (cnr_end != NULL) {
       cnr_end->next = cnr;
       cnr_end = cnr;
-    }
-    else {
+    } else {
       blk->nr = cnr;
       cnr_end = cnr;
     }
@@ -425,6 +427,42 @@ add_block:
     prev_cnr_end[nb_blk] = 0;
     rule_match = 1;
 
+  } else if (tok == TOK_IDENTIFIER) {
+    nr_t *cnr = malloc(sizeof(nr_t));
+    assert(cnr != NULL);
+    cnr->type = SYM_BLOCK;
+    cnr->id = tok_identifier;
+    cnr->line = line_token_found;
+    cnr->column = column_token_found;
+    cnr->next = NULL;
+
+    symrec_t *staff = getsym(d, tok_identifier);
+    if (staff == NULL) {
+      CUSTOM_ERROR(d, "Undefined reference to '%s'", tok_identifier);
+      cnr->block = NULL;
+      cnr->id = NULL;
+      free(tok_identifier);
+    } else {
+      cnr->block = staff->value.staff.bnr;
+      cnr->id = tok_identifier;
+      blk->nb_samples += staff->value.staff.nb_samples;
+    }
+    tok_identifier = NULL;
+
+    if (cnr_end != NULL) {
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    } else {
+      blk->nr = cnr;
+      cnr_end = cnr;
+    }
+    rule_match = 1;
+
+    tok = read_next_tok(d);
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
   } else
     return 0;
 
@@ -433,7 +471,7 @@ add_block:
     goto end_block;
   if (nb_blk != 0)
     goto add_block;
-  if (rule_match){
+  if (rule_match) {
     goto add_block;
   }
   return 0;
@@ -515,7 +553,7 @@ static track_t *parse_track_tail(track_t *track_head, track_t *track_tail) {
 append:
   if (nb_calls == PARSE_TRACK_MAX_CALLS) {
     CUSTOM_ERROR(d, "%d maximum calls has reached. Killing self\n",
-            PARSE_TRACK_MAX_CALLS);
+                 PARSE_TRACK_MAX_CALLS);
 #ifndef _WIN32
     dats_exit_handler(1, NULL, NULL); /* self killed */
 #else
@@ -933,7 +971,8 @@ append:
       case MIX:
         printf("[debug] stack #%d mix\n", i);
         break;
-      default: break;
+      default:
+        break;
       }
     }
     destroy_track(track_head);
@@ -945,7 +984,8 @@ append:
       goto FILTER;
     case MIX:
       goto MIX;
-    default: break;
+    default:
+      break;
     }
   }
   return track_head;

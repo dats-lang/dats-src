@@ -100,6 +100,7 @@ void destroy_track(track_t *track) {
 }
 
 void clean_bnr(bnr_t *bnr) {
+  if (bnr == NULL) return;
   nr_t *tnr;
   for (nr_t *nr = bnr->nr; nr != NULL; nr = tnr) {
     tnr = nr->next;
@@ -112,6 +113,10 @@ void clean_bnr(bnr_t *bnr) {
       }
     } break;
     case SYM_BLOCK:
+      if (nr->id != NULL){
+        free(nr->id);
+        break;
+      }
       clean_bnr(nr->block);
       break;
     default:
@@ -129,7 +134,7 @@ void clean_all_symrec_t_all_dats_t() {
       switch (p->type) {
       case TOK_STAFF: {
         free(p->value.staff.identifier);
-        clean_bnr(p->value.staff.bnr); /*
+        clean_bnr(p->value.staff.bnr);/*
          bnr_t *tmp;
          for (bnr_t *nr = p->value.staff.bnr; nr != NULL; bnr = tmp) {
            tmp = nr->next;
