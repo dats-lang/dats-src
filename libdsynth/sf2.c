@@ -47,6 +47,16 @@ const char *const sf2_errlist[] = {
     "no such preset",
 };
 
+int16_t *pcmiorate(int16_t *ipcm, uint32_t irate, uint32_t orate, uint32_t nb_samples){
+  const uint32_t onb_samples = (nb_samples*orate)/irate;
+  int16_t *opcm =  malloc(sizeof(int16_t)*onb_samples);
+
+  for (uint32_t n = 0; n < onb_samples; n++)
+    opcm[n] = ipcm[(uint32_t)(((float)n * (float)orate) / (float)irate)];
+
+  return opcm;
+}
+
 SF2 *sf2_read_sf2(FILE *fp) {
   rewind(fp);
   SF2 *sf2 = NULL;
@@ -399,11 +409,14 @@ SF2 *sf2_read_sf2(FILE *fp) {
 
 /* returns 0 if success. nonzero represents failure */
 int sf2_generate_pcm(const int16_t *dest, const uint32_t duration,
-                     const char *const preset_name, const SF2 *const sf2) {
+                     const uint16_t preset, const uint16_t bank, const SF2 *const sf2) {
   uint32_t phdr_index = 0;
+  int fphdr = 0;
   for (; phdr_index < sf2->nb_phdr; phdr_index++) {
-    if (!strcmp(sf2->phdr[phdr_index].name, preset_name))
-      break;
+    if (sf2->phdr[phdr_index].preset == preset){
+      if (sf2->phdr[phdr_index].bank == bank)
+        break;
+    }
   }
   if (!strcmp(sf2->phdr[phdr_index - 1].name, "EOP"))
     return (sf2_errno = 5);

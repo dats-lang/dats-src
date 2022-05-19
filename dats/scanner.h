@@ -96,7 +96,7 @@ EXTERN dats_t *dats_files;
   {                                                                            \
     local_errors++;                                                            \
     DATS_ERROR("[" GREEN_ON "%s:%d@ %s" COLOR_OFF "] %s:%" PRIu32                   \
-          ":%" PRIu32 RED_ON "error" COLOR_OFF ": ",                           \
+          ":%" PRIu32 RED_ON " error" COLOR_OFF ": ",                           \
           __FILE__, __LINE__, __func__, d->fname, line_token_found,            \
           column_token_found);                                                 \
     DATS_ERROR(__VA_ARGS__);                                                        \

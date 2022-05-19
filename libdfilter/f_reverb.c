@@ -153,14 +153,13 @@ static int filter(track_t *pcm_ctx, track_t *const pcm_src) {
     pcm_ctx->stereo.rpcm = malloc(sizeof(int16_t) * output_snd->size);
     assert(pcm_ctx->stereo.lpcm != NULL && pcm_ctx->stereo.rpcm != NULL);
     for (int i = 0; i < output_snd->size; i++) {
-      pcm_ctx->stereo.lpcm[i] = (int16_t)(output_snd->samples[i].L * 32768.0f);
+      pcm_ctx->stereo.lpcm[i] = (int16_t)(output_snd->samples[i].L * 32767.0f);
       pcm_ctx->stereo.rpcm[i] = (int16_t)(output_snd->samples[i].R * 32767.0f);
     }
     break;
   }
 
-  free(output_snd->samples);
-  free(output_snd);
+  sf_snd_free(output_snd);
   free_string_options();
   return 0;
 }

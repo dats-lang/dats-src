@@ -45,7 +45,7 @@ void print_track_t(track_t *const track) {
       break;
     case MIX:
       printf("MIX %d\n", p->MIX.nb_track);
-      for (size_t i = 0; i < p->MIX.nb_track; i++) {
+      for (uint32_t i = 0; i < p->MIX.nb_track; i++) {
         printf("arg %d: %p\n", i, p->MIX.track[i]);
         fflush(stdout);
         break;

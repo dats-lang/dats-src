@@ -12,10 +12,10 @@
  *
  **/
 
-#include <signal.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
+#include <string.h>
 #include <unistd.h>
 
 const uint32_t nb_quotes = 346;
@@ -31,22 +31,7 @@ static const quote_t quotes[] = {
 };
 
 void dats_print_quote(void){
-  write(2, quotes[i].quote, strlen(quotes[i].quote));
-}
-
-void dats_exit_handler(int sig, siginfo_t *info, void *ucontext) {
-  write(2, "Segmentation fault\n", 19);
-  dats_print_quote();
-  _exit(sig);
-}
-
-#ifndef _WIN32
-void register_deadquote(void) {
   srand(time(NULL));
   i = (uint32_t)rand() % nb_quotes;
-  struct sigaction sa = {0};
-  sa.sa_sigaction = &dats_exit_handler;
-  sa.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &sa, NULL);
+  write(2, quotes[i].quote, strlen(quotes[i].quote));
 }
-#endif

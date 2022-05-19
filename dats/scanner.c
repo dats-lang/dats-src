@@ -124,6 +124,7 @@ void clean_bnr(bnr_t *bnr) {
     }
     free(nr);
   }
+  free(bnr);
 }
 
 void clean_all_symrec_t_all_dats_t() {

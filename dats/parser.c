@@ -25,11 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef _WIN32
-extern void dats_exit_handler(int, void *, void *);
-#else
-extern void print_quote(void);
-#endif
+extern void dats_print_quote(void);
 
 #include "scanner.h"
 
@@ -60,7 +56,7 @@ add_block:
     cnr->type = SYM_NOTE;
     cnr->length = 0;
     cnr->next = NULL;
-  add_lengthn:
+  add_lengthen:
     tok = read_next_tok(d);
     if (tok != TOK_FLOAT) {
       EXPECTING(TOK_FLOAT, d);
@@ -71,15 +67,15 @@ add_block:
     cnr->length += (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
     uint32_t dotted_len =
         (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
-  checkn:
+  checken:
     tok = read_next_tok(d);
     switch (tok) {
     case TOK_DOT:
       dotted_len /= 2;
       cnr->length += dotted_len;
-      goto checkn;
+      goto checken;
     case TOK_ADD:
-      goto add_lengthn;
+      goto add_lengthen;
     case TOK_COMMA:
       break;
     default:
@@ -101,7 +97,7 @@ add_block:
       return 1;
     }
 
-  addn: /* add dyad */
+  adden: /* add dyad */
     f->frequency = tok_num * pow(2.0, (double)tok_octave) *
                    pow(1.059463094, (double)tok_semitone);
     f->mnkey = tok_note + tok_semitone + tok_octave * 0x0c;
@@ -129,7 +125,7 @@ add_block:
       f->next = malloc(sizeof(note_t));
       assert(f != NULL);
       f = f->next;
-      goto addn;
+      goto adden;
     }
     default:
       break;
@@ -155,13 +151,107 @@ add_block:
       UNEXPECTED(tok, d);
       return 1;
     }
+  } else if (tok == TOK_NOTE) {
+    nr_t *cnr = malloc(sizeof(nr_t));
+    assert(cnr != NULL);
+    cnr->type = SYM_NOTE;
+    cnr->length = 0;
+    cnr->next = NULL;
+
+    note_t *n = malloc(sizeof(note_t));
+    note_t *f = n;
+    assert(n != NULL);
+
+  addin: /* add dyad */
+    f->frequency = tok_num * pow(2.0, (double)tok_octave) *
+                   pow(1.059463094, (double)tok_semitone);
+    f->mnkey = tok_note + tok_semitone + tok_octave * 0x0c;
+
+    f->attack = tok_attack;
+    f->decay = tok_decay;
+    f->sustain = tok_sustain;
+    f->release = tok_release;
+    f->volume = tok_volume;
+    f->duration = cnr->length;
+    tok = read_next_tok(d);
+
+    switch (tok) {
+    case TOK_DOT: {
+      f->duration /= 2;
+      tok = read_next_tok(d);
+      break;
+    }
+    case TOK_UNDERSCORE: {
+      f->duration /= 4;
+      tok = read_next_tok(d);
+      break;
+    }
+    case TOK_NOTE: {
+      f->next = malloc(sizeof(note_t));
+      assert(f != NULL);
+      f = f->next;
+      goto addin;
+    }
+    default:
+      break;
+    }
+
+  add_lengthin:
+    if (tok != TOK_FLOAT) {
+      EXPECTING(TOK_FLOAT, d);
+      free(cnr);
+      return 1;
+    }
+
+    cnr->length += (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
+    f->duration = cnr->length;
+    uint32_t dotted_len =
+        (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
+  checkin:
+    tok = read_next_tok(d);
+    switch (tok) {
+    case TOK_DOT:
+      dotted_len /= 2;
+      cnr->length += dotted_len;
+      goto checkin;
+    case TOK_ADD:
+      tok = read_next_tok(d);
+      goto add_lengthin;
+    case TOK_COMMA:
+      break;
+    default:
+      break;
+    }
+    blk->nb_samples += cnr->length;
+
+    f->next = NULL;
+    cnr->note = n;
+
+    if (enable_debug) {
+      DATS_ERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+                 (void *)cnr);
+    }
+    if (cnr_end != NULL) {
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    } else {
+      blk->nr = cnr;
+      cnr_end = cnr;
+    }
+    rule_match = 1;
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+     
   } else if (tok == TOK_R) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
     cnr->type = SYM_REST;
     cnr->length = 0;
     cnr->next = NULL;
-  add_lengthr:
+  add_lengther:
     tok = read_next_tok(d);
     if (tok != TOK_FLOAT) {
       UNEXPECTED(tok, d);
@@ -171,15 +261,61 @@ add_block:
     cnr->length += (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
     uint32_t dotted_len =
         (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
-  checkr:
+  checker:
     tok = read_next_tok(d);
     switch (tok) {
     case TOK_DOT:
       dotted_len /= 2;
       cnr->length += dotted_len;
-      goto checkr;
+      goto checker;
     case TOK_ADD:
-      goto add_lengthr;
+      goto add_lengther;
+    default:;
+    }
+    blk->nb_samples += cnr->length;
+
+    if (enable_debug) {
+      DATS_ERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+                 (void *)cnr);
+    }
+    if (cnr_end != NULL) {
+      cnr_end->next = cnr;
+      cnr_end = cnr;
+    } else {
+      blk->nr = cnr;
+      cnr_end = cnr;
+    }
+    rule_match = 1;
+
+    if (tok != TOK_SEMICOLON) {
+      UNEXPECTED(tok, d);
+      return 1;
+    }
+  } else if (tok == TOK_FLOAT){
+    nr_t *cnr = malloc(sizeof(nr_t));
+    assert(cnr != NULL);
+    cnr->type = SYM_REST;
+    cnr->length = 0;
+    cnr->next = NULL;
+  add_lengthir:
+    if (tok != TOK_FLOAT) {
+      UNEXPECTED(tok, d);
+      free(cnr);
+      return 1;
+    }
+    cnr->length += (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
+    uint32_t dotted_len =
+        (uint32_t)(60.0 * 44100.0 * 4.0 / (tok_bpm * tok_num));
+  checkir:
+    tok = read_next_tok(d);
+    switch (tok) {
+    case TOK_DOT:
+      dotted_len /= 2;
+      cnr->length += dotted_len;
+      goto checkir;
+    case TOK_ADD:
+      tok = read_next_tok(d);
+      goto add_lengthir;
     default:;
     }
     blk->nb_samples += cnr->length;
@@ -554,12 +690,8 @@ append:
   if (nb_calls == PARSE_TRACK_MAX_CALLS) {
     CUSTOM_ERROR(d, "%d maximum calls has reached. Killing self\n",
                  PARSE_TRACK_MAX_CALLS);
-#ifndef _WIN32
-    dats_exit_handler(1, NULL, NULL); /* self killed */
-#else
     dats_print_quote();
-    exit(1);
-#endif
+    abort();
   }
 
   track_tail->track_type = track_type;
