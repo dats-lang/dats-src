@@ -23,70 +23,7 @@
 #define ENV_H
 #include <stdint.h>
 #include <stdio.h>
-
-enum token_t {
-  TOK_IDENTIFIER,
-  TOK_STRING,
-
-  /* Data types */
-  TOK_STAFF,
-  // TOK_TRACK,
-  TOK_ATRACK,
-  TOK_SYNTH,
-  TOK_FILTER,
-  TOK_MAIN,
-  TOK_TRACK,
-  TOK_FLOAT,
-
-  /* Type specifier*/
-  TOK_MONO,
-  TOK_STEREO,
-
-  /* Macros */
-  TOK_REPEAT,
-  TOK_WRITE,
-  TOK_READ,
-  TOK_MIX,
-  TOK_NOTE,
-  TOK_N,
-  TOK_R,
-
-  /* env */
-  TOK_BPM,
-  TOK_ATTACK,
-  TOK_DECAY,
-  TOK_SUSTAIN,
-  TOK_RELEASE,
-  TOK_SEMITONE,
-  TOK_OCTAVE,
-  TOK_VOLUME,
-
-  /* Symbols */
-  TOK_LPAREN,
-  TOK_RPAREN,
-  TOK_LCURLY_BRACE,
-  TOK_RCURLY_BRACE,
-  TOK_LBRACKET,
-  TOK_RBRACKET,
-  TOK_SEMICOLON,
-  TOK_COMMA,
-  TOK_DOT,
-  TOK_DQUOTE, /*  double quote */
-  TOK_SQUOTE, /* single qoute */
-  TOK_UNDERSCORE,
-
-  TOK_EQUAL,
-  TOK_ADD,
-  TOK_SUB,
-  TOK_MUL,
-  TOK_DIV,
-
-  /* Misc */
-  TOK_EOF,
-  TOK_ERR,
-  TOK_NULL
-};
-typedef enum token_t token_t;
+#include "tokens.h"
 
 enum music_symbol { SYM_REST, SYM_NOTE, SYM_BLOCK };
 typedef enum music_symbol music_symbol;
@@ -112,6 +49,7 @@ struct note_t {
 typedef struct bnr_t bnr_t;
 typedef struct nr_t nr_t; /* list of notes and rests with properties */
 struct nr_t {
+  char *bool_expr;
   music_symbol type;
   union {
     struct {
@@ -130,6 +68,7 @@ struct nr_t {
 };
 
 struct bnr_t {
+  char *bool_expr;
   uint32_t nb_samples;
   uint8_t block_id, block_repeat;
   nr_t *nr;
@@ -164,6 +103,11 @@ struct track_t {
       uint32_t line, column;
     } MIX;
     struct {
+      /* if where_filter is 1, dats looks for the filter, a
+       * shared library with the same name in current directory.
+       * If it is 0, dats loads the filter from libdfilter.so.
+       */
+      char where_filter;
       char *filter_name;
       track_t *track_arg; // a linked list
       uint32_t filter_line, filter_column;
@@ -172,6 +116,11 @@ struct track_t {
       filter_option_t *options;
     } FILTER;
     struct {
+      /* if where_synth is 1, dats looks for the synth, a
+       * shared library, with the same name in current directory.
+       * If it is 0, dats loads the synth from libdsynth.so.
+       */
+      char where_synth;
       char *synth_name, *staff_name;
       uint32_t staff_line, staff_column;
       uint32_t synth_line, synth_column;
@@ -213,7 +162,6 @@ struct symrec_t {
   union {
     struct {
       char *identifier;
-     // nr_t *nr;
       bnr_t *bnr;
       uint32_t nb_samples; // with the repeat
     } staff; /* staff variables */
@@ -243,7 +191,7 @@ typedef struct dats_t dats_t;
 struct dats_t {
   /* `fp` contains the processed file */
   /* `initial` contains the raw unprocessed file,
-   *   and will be processed by the processor.
+   *  and will be processed by the processor.
    */
   FILE *fp, *initial;
   char *fname;

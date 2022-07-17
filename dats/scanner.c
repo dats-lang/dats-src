@@ -19,12 +19,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "dats.h"
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dats.h"
 //#include <sys/ioctl.h>
 #define DEFINE_SCANNER_VARIABLES
 #include "scanner.h"
@@ -100,7 +100,8 @@ void destroy_track(track_t *track) {
 }
 
 void clean_bnr(bnr_t *bnr) {
-  if (bnr == NULL) return;
+  if (bnr == NULL)
+    return;
   nr_t *tnr;
   for (nr_t *nr = bnr->nr; nr != NULL; nr = tnr) {
     tnr = nr->next;
@@ -113,7 +114,7 @@ void clean_bnr(bnr_t *bnr) {
       }
     } break;
     case SYM_BLOCK:
-      if (nr->id != NULL){
+      if (nr->id != NULL) {
         free(nr->id);
         break;
       }
@@ -135,20 +136,20 @@ void clean_all_symrec_t_all_dats_t() {
       switch (p->type) {
       case TOK_STAFF: {
         free(p->value.staff.identifier);
-        clean_bnr(p->value.staff.bnr);/*
-         bnr_t *tmp;
-         for (bnr_t *nr = p->value.staff.bnr; nr != NULL; bnr = tmp) {
-           tmp = nr->next;
-           if (nr->type == SYM_NOTE && nr != NULL) {
-             note_t *nntmp;
-             for (note_t *ntmp = nr->note; ntmp != NULL;) {
-               nntmp = ntmp->next;
-               free(ntmp);
-               ntmp = nntmp;
-             }
-           }
-           free(nr);
-         }*/
+        clean_bnr(p->value.staff.bnr); /*
+          bnr_t *tmp;
+          for (bnr_t *nr = p->value.staff.bnr; nr != NULL; bnr = tmp) {
+            tmp = nr->next;
+            if (nr->type == SYM_NOTE && nr != NULL) {
+              note_t *nntmp;
+              for (note_t *ntmp = nr->note; ntmp != NULL;) {
+                nntmp = ntmp->next;
+                free(ntmp);
+                ntmp = nntmp;
+              }
+            }
+            free(nr);
+          }*/
       } break;
       case TOK_TRACK:
         free(p->value.track.identifier);
@@ -731,9 +732,9 @@ w:
   }
   if (expecting == TOK_STRING) {
     DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
-          "error" COLOR_OFF ": Too long string\n",
-          __FILE__, __LINE__, __func__, d->fname, line_token_found,
-          column_token_found);
+               "error" COLOR_OFF ": Too long string\n",
+               __FILE__, __LINE__, __func__, d->fname, line_token_found,
+               column_token_found);
     return TOK_ERR;
   }
   if (c == (int)'/') {
@@ -782,9 +783,9 @@ w:
       strcpy(d->scan_line, prev_line);
       local_errors++;
       DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
-            "error" COLOR_OFF ": ",
-            __FILE__, __LINE__, __func__, d->fname, line_token_found,
-            column_token_found);
+                 "error" COLOR_OFF ": ",
+                 __FILE__, __LINE__, __func__, d->fname, line_token_found,
+                 column_token_found);
       DATS_ERROR("unterminated multi-line comment");
       print_debugging_info(TOK_NULL, d);
       return TOK_ERR;
@@ -795,7 +796,7 @@ w:
     c = '/';
   }
   switch (c) {
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case 'a': case 'b': case 'c': case 'd': case 'e':
     case 'f': case 'g': case 'h': case 'i': case 'j':
@@ -859,9 +860,9 @@ w:
         default:
           local_errors++;
           DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
-                "error" COLOR_OFF ": ",
-                __FILE__, __LINE__, __func__, d->fname, line_token_found,
-                column_token_found);
+                     "error" COLOR_OFF ": ",
+                     __FILE__, __LINE__, __func__, d->fname, line_token_found,
+                     column_token_found);
           DATS_ERROR("illegal key");
           print_debugging_info(TOK_NULL, d);
           return TOK_ERR;
@@ -894,9 +895,9 @@ w:
         } else
           local_errors++;
         DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
-              "error" COLOR_OFF ": ",
-              __FILE__, __LINE__, __func__, d->fname, line_token_found,
-              column_token_found);
+                   "error" COLOR_OFF ": ",
+                   __FILE__, __LINE__, __func__, d->fname, line_token_found,
+                   column_token_found);
         DATS_ERROR("illegal key");
         print_debugging_info(TOK_NULL, d);
         return TOK_ERR;
@@ -946,7 +947,7 @@ w:
         return TOK_IDENTIFIER;
       }
     }
-    // clang-format off
+  // clang-format off
     /* *INDENT-OFF* */
     case '0': case '1': case '2': case '3':
     case '4': case '5': case '6': case '7':
@@ -1089,9 +1090,9 @@ w:
   default:
     local_errors++;
     DATS_ERROR("[" GREEN_ON "%s:%d @ %s" COLOR_OFF "] %s:%d:%d " RED_ON
-          "error" COLOR_OFF ": ",
-          __FILE__, __LINE__, __func__, d->fname, line_token_found,
-          column_token_found);
+               "error" COLOR_OFF ": ",
+               __FILE__, __LINE__, __func__, d->fname, line_token_found,
+               column_token_found);
     DATS_ERROR("illegal symbol");
     print_debugging_info(TOK_NULL, d);
     return TOK_ERR;
@@ -1209,7 +1210,8 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
       printf("  %-20s    %-20s %s\n",
              p->value.track.identifier == NULL ? "(null)"
                                                : p->value.track.identifier,
-             token_t_to_str(TOK_TRACK), (!p->value.track.track->track_type)?"mono":"stereo");
+             token_t_to_str(TOK_TRACK),
+             (!p->value.track.track->track_type) ? "mono" : "stereo");
       break;
     case TOK_WRITE:
       printf("  [write]\n");

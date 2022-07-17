@@ -1,5 +1,7 @@
 #include "env.h"
 #include <stdio.h>
+#include <string.h>
+extern char **synth_paths;
 
 void print_all_nr_t(nr_t *nr) {
   for (nr_t *p = nr; p != NULL; p = p->next) {
@@ -15,6 +17,30 @@ void print_all_nr_t(nr_t *nr) {
       break;
     }
   }
+}
+
+char *basename(const char *name) {
+#ifdef _WIN32
+  return strrchr(name, '\\');
+#else
+  return strrchr(name, '/');
+#endif
+}
+
+void synth_lookup_path(char *dest, const char *name, size_t n) {
+  char path[256] = {0};
+  for (int i = 0; synth_paths[i] != NULL; i++) {
+    strncat(path, synth_paths[i], 255);
+    strncat(path, "/", 255);
+    strncat(path, name, 255);
+    FILE *fp = fopen(path, "rb");
+    if (fp != NULL) {
+      strncpy(dest, path, n);
+      return;
+    }
+  }
+
+  memset(dest, 0, n);
 }
 
 void print_track_t(track_t *const track) {

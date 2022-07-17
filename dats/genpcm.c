@@ -21,6 +21,13 @@
 
 #include "dats.h"
 #include "env.h"
+
+#ifdef _WIN32
+#include "windows.h"
+#else
+#include "dlfcn.h"
+#endif
+
 #include "libdfilter/allfilter.h"
 #include "libdsynth/allsynth.h"
 #include <assert.h>
@@ -30,6 +37,7 @@
 
 extern symrec_t *getsym(dats_t *, char *);
 extern void memmix16(int16_t *, int16_t *, float, uint32_t);
+extern void synth_lookup_path(char *, const char *, size_t);
 
 int gen_track(dats_t *dats, track_t *ctx) {
   switch (ctx->track_type) {
@@ -48,11 +56,30 @@ int gen_track(dats_t *dats, track_t *ctx) {
   }
 
   DFFilter *filter_ctx = NULL;
+  DSSynth *synth_ctx = NULL;
   if (ctx == NULL)
     return 1;
   switch (ctx->type) {
-  case SYNTH:{
-    const DSSynth *synth_ctx = get_dsynth_by_name(ctx->SYNTH.synth_name);
+  case SYNTH: {
+    if (ctx->SYNTH.where_synth == 0) {
+      synth_ctx = get_dsynth_by_name(ctx->SYNTH.synth_name);
+    } else if (ctx->SYNTH.where_synth == 1) {
+      char loadable_synth[126] = "s_";
+      strncat(loadable_synth, ctx->SYNTH.synth_name, 126);
+      strncat(loadable_synth, ".so", 126);
+      char path_synth[256] = {0};
+      synth_lookup_path(path_synth, loadable_synth, 255);
+
+      char symbol_synth[126] = "ss_";
+      strncat(symbol_synth, ctx->SYNTH.synth_name, 125);
+#ifdef _WIN32
+      HINSTANCE handle = LoadLibrary(path_synth);
+      synth_ctx = GetProcAddress(handle, symbol_synth);
+#else
+      void *handle = dlopen(path_synth, RTLD_NOW);
+      synth_ctx = dlsym(handle, symbol_synth);
+#endif
+    }
     for (int op = 0; op < ctx->SYNTH.nb_options; op++) {
       int ctr = 0;
       while (synth_ctx->options[ctr].option_name != NULL) {
@@ -81,8 +108,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
       printf("ERROR -->\n");
       return 1;
     }
-    }
-    break;
+  } break;
   case FILTER:
     filter_ctx = get_dfilter_by_name(ctx->FILTER.filter_name);
     int (*const filter_func)(track_t * dst, track_t * src) = filter_ctx->filter;
@@ -119,8 +145,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
     case 0:
       ctx->mono.pcm = malloc(src->mono.nb_samples * sizeof(int16_t));
       assert(ctx->mono.pcm != NULL);
-      memmix16(ctx->mono.pcm, src->mono.pcm, src->gain,
-                   src->mono.nb_samples);
+      memmix16(ctx->mono.pcm, src->mono.pcm, src->gain, src->mono.nb_samples);
       ctx->mono.nb_samples = src->mono.nb_samples;
       ctx->mono.play_end = src->mono.play_end;
       break;
@@ -128,14 +153,14 @@ int gen_track(dats_t *dats, track_t *ctx) {
       ctx->stereo.lpcm = calloc(src->stereo.lnb_samples, sizeof(int16_t));
       assert(ctx->stereo.lpcm != NULL);
       memmix16(ctx->stereo.lpcm, src->stereo.lpcm, src->gain,
-                   src->stereo.lnb_samples);
+               src->stereo.lnb_samples);
       ctx->stereo.lnb_samples = src->stereo.lnb_samples;
       ctx->stereo.lplay_end = src->stereo.lplay_end;
 
       ctx->stereo.rpcm = calloc(src->stereo.rnb_samples, sizeof(int16_t));
       assert(ctx->stereo.rpcm != NULL);
       memmix16(ctx->stereo.rpcm, src->stereo.rpcm, src->gain,
-                   src->stereo.rnb_samples);
+               src->stereo.rnb_samples);
       ctx->stereo.rnb_samples = src->stereo.rnb_samples;
       ctx->stereo.rplay_end = src->stereo.rplay_end;
       break;
@@ -193,7 +218,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
     }
 
     uint32_t seek = 0, lseek = 0, rseek = 0;
-    for (uint32_t i = 0; i < ctx->MIX.nb_track; i++){
+    for (uint32_t i = 0; i < ctx->MIX.nb_track; i++) {
       for (track_t *src = ctx->MIX.track[i]; src != NULL; src = src->next) {
         switch (ctx->track_type) {
         case 0:
@@ -223,7 +248,9 @@ int gen_track(dats_t *dats, track_t *ctx) {
             ctx->stereo.rplay_end = src->stereo.rplay_end;
         }
       }
-    seek = 0; lseek = 0; rseek = 0;
+      seek = 0;
+      lseek = 0;
+      rseek = 0;
     }
 
     break;

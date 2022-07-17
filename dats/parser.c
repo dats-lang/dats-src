@@ -56,6 +56,11 @@ add_block:
     cnr->type = SYM_NOTE;
     cnr->length = 0;
     cnr->next = NULL;
+
+  /* -en suffix: explicit note */
+  /* -er suffix: explicit rest */
+  /* -in suffix: implicit note */
+  /* -ir suffix: implicit rest */
   add_lengthen:
     tok = read_next_tok(d);
     if (tok != TOK_FLOAT) {
@@ -98,6 +103,7 @@ add_block:
     }
 
   adden: /* add dyad */
+    /* equal temperment */
     f->frequency = tok_num * pow(2.0, (double)tok_octave) *
                    pow(1.059463094, (double)tok_semitone);
     f->mnkey = tok_note + tok_semitone + tok_octave * 0x0c;
@@ -244,7 +250,7 @@ add_block:
       UNEXPECTED(tok, d);
       return 1;
     }
-     
+
   } else if (tok == TOK_R) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
@@ -291,7 +297,7 @@ add_block:
       UNEXPECTED(tok, d);
       return 1;
     }
-  } else if (tok == TOK_FLOAT){
+  } else if (tok == TOK_FLOAT) {
     nr_t *cnr = malloc(sizeof(nr_t));
     assert(cnr != NULL);
     cnr->type = SYM_REST;
@@ -725,19 +731,40 @@ append:
       return NULL;
     }
     tok = read_next_tok(d);
-    if (tok != TOK_IDENTIFIER) {
+    switch (tok) {
+    case TOK_DQUOTE:
+      track_tail->SYNTH.where_synth = 1;
+      expecting = TOK_STRING;
+      tok = read_next_tok(d);
+      track_tail->SYNTH.synth_name = tok_identifier;
+      track_tail->SYNTH.synth_line = line_token_found;
+      track_tail->SYNTH.synth_column = column_token_found;
+      expecting = TOK_NULL;
+
+      tok = read_next_tok(d);
+      if (tok != TOK_DQUOTE) {
+        CUSTOM_ERROR(d, "Must be terminated with, '\"'");
+        destroy_track(track_head);
+        return NULL;
+      }
+      break;
+    case TOK_IDENTIFIER:
+      track_tail->SYNTH.where_synth = 0;
+      track_tail->SYNTH.synth_name = tok_identifier;
+      track_tail->SYNTH.synth_line = line_token_found;
+      track_tail->SYNTH.synth_column = column_token_found;
+      break;
+    default:
       UNEXPECTED(tok, d);
       destroy_track(track_head);
       return NULL;
     }
+    tok_identifier = NULL;
+
     track_tail->type = SYNTH;
-    track_tail->SYNTH.synth_line = line_token_found;
-    track_tail->SYNTH.synth_column = column_token_found;
-    track_tail->SYNTH.synth_name = tok_identifier;
     track_tail->SYNTH.staff_name = NULL;
     track_tail->SYNTH.options = NULL;
     track_tail->SYNTH.nb_options = 0;
-    tok_identifier = NULL;
 
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {

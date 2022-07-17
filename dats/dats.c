@@ -39,11 +39,28 @@ extern int parse_cur_dats_t(dats_t *const t);
 extern int semantic_cur_dats_t(dats_t const *const);
 extern int exec_write(dats_t *);
 
+char **synth_paths = NULL;
+int synth_paths_nb = 0;
+
 int enable_debug = 0;
 /* process_args returns the value 0 if sucesss and nonzero if
  * failed.
  */
-int process_args(const int argc, char *const *argv) {
+
+static void init_paths(void) {
+  synth_paths = malloc(sizeof(char *) * 2);
+  assert(synth_paths != NULL);
+
+  synth_paths[0] = calloc(1, 3);
+  assert(synth_paths[0] != NULL);
+  strcat(synth_paths[0], ".");
+
+  synth_paths[1] = NULL;
+
+  synth_paths_nb = 2;
+}
+
+static int process_args(const int argc, char *const *argv) {
   if (argc == 1) {
     DATS_ERROR("No argument supplied!\nUse --help to print help\n");
     return 1;
@@ -82,10 +99,20 @@ int process_args(const int argc, char *const *argv) {
           return 0;
         }
       }
-      if (argv[i][1] == 'd' && !argv[i][2]){
+      if (argv[i][1] == 'd' && !argv[i][2]) {
         enable_debug = 1;
         continue;
       }
+      if (argv[i][1] == 'S') {
+        synth_paths = realloc(synth_paths, synth_paths_nb + 1);
+        assert(synth_paths != NULL);
+        size_t len = strlen(&argv[i][2]);
+        synth_paths[synth_paths_nb] = malloc(len + 1);
+        strcpy(synth_paths[synth_paths_nb], &argv[i][2]);
+        synth_paths_nb++;
+        continue;
+      }
+
       DATS_ERROR(RED_ON "error" COLOR_OFF ": unknown option '%s'\n", argv[i]);
       global_errors++;
       break;
@@ -131,6 +158,7 @@ int main(int argc, char **argv) {
   }
 #endif
 
+  init_paths();
   int ret;
   ret = process_args(argc, argv);
   if (ret)
@@ -156,5 +184,10 @@ err:
 
   clean_all_symrec_t_all_dats_t();
   clean_all_dats_t();
+
+  for (int i = 0; i < synth_paths_nb; i++)
+    free(synth_paths[i]);
+  free(synth_paths);
+
   return global_errors ? 1 : 0;
 }

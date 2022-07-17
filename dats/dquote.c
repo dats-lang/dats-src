@@ -12,10 +12,10 @@
  *
  **/
 
-#include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 const uint32_t nb_quotes = 346;
@@ -27,10 +27,10 @@ struct quote_t {
 };
 
 static const quote_t quotes[] = {
-  #include "quotes.txt"
+#include "quotes.txt"
 };
 
-void dats_print_quote(void){
+void dats_print_quote(void) {
   srand(time(NULL));
   i = (uint32_t)rand() % nb_quotes;
   write(2, quotes[i].quote, strlen(quotes[i].quote));

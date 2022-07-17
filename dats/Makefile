@@ -13,7 +13,8 @@ OBJ += write.o
 OBJ += mixer.o
 
 LDFLAGS = -L../libdsynth -ldsynth -L../libdfilter \
-	-ldfilter -lm 
+	-ldfilter -lm
+
 include ../config.txt
 
 ifeq ($(ENABLE_DEBUG), yes)
@@ -34,6 +35,10 @@ endif
 
 ifeq ($(OS), Windows_NT)
 	LDFLAGS += -Wl,--stack,8388608 # 8 MiB
+endif
+
+ifneq ($(OS), Windows_NT)
+	LDFLAGS += -ldl
 endif
 
 .PHONY : clean test indent

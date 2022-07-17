@@ -22,6 +22,12 @@
 #include <assert.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include "windows.h"
+#else
+#include "dlfcn.h"
+#endif
+
 #include "env.h"
 #include "scanner.h"
 
@@ -29,6 +35,7 @@
 #include "libdsynth/allsynth.h"
 
 void print_track_t(track_t *const track);
+extern void synth_lookup_path(char *, const char *, size_t);
 
 static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
   for (symrec_t *sym1 = sym; sym1 != NULL; sym1 = sym1->next) {
@@ -94,12 +101,65 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
   }
     goto exit;
   case SYNTH: {
-    const DSSynth *driver = get_dsynth_by_name(track_cur->SYNTH.synth_name);
-    if (driver == NULL) {
-      SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
-               "No synth named, '%s'\n", track_cur->SYNTH.synth_name);
-      err = 1;
+    DSSynth *driver;
+    if (track_cur->SYNTH.where_synth == 1) {
+
+      char loadable_synth[126] = "s_";
+      strncat(loadable_synth, track_cur->SYNTH.synth_name, 126);
+      strncat(loadable_synth, ".so", 126);
+
+      char path_synth[256] = {0};
+      synth_lookup_path(path_synth, loadable_synth, 255);
+      if (*path_synth == 0) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "Couldn't locate, %s\n", loadable_synth);
+        err = 1;
+        goto skip_resolving_synth;
+      }
+
+      char symbol_synth[126] = "ss_";
+      strncat(symbol_synth, track_cur->SYNTH.synth_name, 125);
+
+#ifdef _WIN32
+      HINSTANCE handle = LoadLibrary(path_synth);
+      if (handle == NULL) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "%s: couldn't load, '%s'. Error code %d\n",
+                 track_cur->SYNTH.synth_name, loadable_synth, GetLastError());
+        err = 1;
+        goto skip_resolving_synth;
+      }
+      driver = (DSSynth *)GetProcAddress(handle, symbol_synth);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "%s: couldn't load, '%s'. Error code %d\n",
+                 track_cur->SYNTH.synth_name, loadable_synth, GetLastError());
+      }
+#else
+      void *handle = dlopen(path_synth, RTLD_NOW);
+      if (handle == NULL) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "%s: %s\n", track_cur->SYNTH.synth_name, dlerror());
+        err = 1;
+        goto skip_resolving_synth;
+      }
+      driver = dlsym(handle, symbol_synth);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "%s: %s\n", track_cur->SYNTH.synth_name, dlerror());
+        err = 1;
+      }
+#endif
+    } else if (track_cur->SYNTH.where_synth == 0) {
+      driver = get_dsynth_by_name(track_cur->SYNTH.synth_name);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "No synth named, '%s'\n", track_cur->SYNTH.synth_name);
+        err = 1;
+      }
     }
+
+  skip_resolving_synth : {}
     symrec_t *track = getsym(d, track_cur->SYNTH.staff_name);
     if (track == NULL) {
       SEMANTIC(d, track_cur->SYNTH.staff_line, track_cur->SYNTH.staff_column,
@@ -184,7 +244,8 @@ int semantic_cur_dats_t(dats_t *d) {
     case TOK_WRITE:
       (void)semantic_track_t(d, n, n->value.write.track);
       break;
-    default: break;
+    default:
+      break;
     }
   }
   fclose(d->fp);
