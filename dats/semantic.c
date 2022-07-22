@@ -107,8 +107,12 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
     if (track_cur->SYNTH.where_synth == 1) {
 
       char loadable_synth[126] = "s_";
-      strncat(loadable_synth, track_cur->SYNTH.synth_name, 126);
-      strncat(loadable_synth, ".so", 126);
+      strncat(loadable_synth, track_cur->SYNTH.synth_name, 125);
+#ifdef _WIN32
+      strncat(loadable_synth, ".dll", 125);
+#else
+      strncat(loadable_synth, ".so", 125);
+#endif
 
       char path_synth[256] = {0};
       locate_synth(path_synth, loadable_synth, 255);
@@ -126,7 +130,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       HINSTANCE handle = LoadLibrary(path_synth);
       if (handle == NULL) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
-                 "%s: couldn't load, '%s'. Error code %d\n",
+                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
                  track_cur->SYNTH.synth_name, loadable_synth, GetLastError());
         err = 1;
         goto skip_resolving_synth;
@@ -134,9 +138,10 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       driver = (DSSynth *)GetProcAddress(handle, symbol_synth);
       if (driver == NULL) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
-                 "%s: couldn't load, '%s'. Error code %d\n",
+                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
                  track_cur->SYNTH.synth_name, loadable_synth, GetLastError());
       }
+      
 #else
       void *handle = dlopen(path_synth, RTLD_NOW);
       if (handle == NULL) {
@@ -150,6 +155,16 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
                  "%s: %s\n", track_cur->SYNTH.synth_name, dlerror());
         err = 1;
+      }
+#endif
+
+#ifdef _WIN32
+      if (!FreeLibrary(handle)) {
+        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n", GetLastError());
+      }
+#else
+      if (dlclose(handle)){
+        DATS_VERROR("Error while closing library: %s\n", dlerror());
       }
 #endif
     } else if (track_cur->SYNTH.where_synth == 0) {
@@ -194,7 +209,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
           options->type == DSOPTION_FLOAT) {
         SEMANTIC(d, track_cur->SYNTH.options[i].line,
                  track_cur->SYNTH.options[i].column,
-                 "Option, '%s', requires value\n",
+                 "Option, '%s', requires integer value\n",
                  track_cur->SYNTH.options[i].option_name);
       } else if (!track_cur->SYNTH.options[i].is_strv &&
                  options->type == DSOPTION_STRING) {
@@ -217,7 +232,11 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
 
       char loadable_filter[126] = "f_";
       strncat(loadable_filter, track_cur->FILTER.filter_name, 126);
-      strncat(loadable_filter, ".so", 126);
+#ifdef _WIN32
+      strncat(loadable_filter, ".dll", 125);
+#else
+      strncat(loadable_filter, ".so", 125);
+#endif
 
       char path_filter[256] = {0};
       locate_filter(path_filter, loadable_filter, 255);
@@ -235,7 +254,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       HINSTANCE handle = LoadLibrary(path_filter);
       if (handle == NULL) {
         SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: couldn't load, '%s'. Error code %d\n",
+                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
                  track_cur->FILTER.filter_name, loadable_filter, GetLastError());
         err = 1;
         goto skip_resolving_filter;
@@ -243,7 +262,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       driver = (DFFilter *)GetProcAddress(handle, symbol_filter);
       if (driver == NULL) {
         SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: couldn't load, '%s'. Error code %d\n",
+                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
                  track_cur->FILTER.filter_name, loadable_filter, GetLastError());
         err = 1;
       }
@@ -298,13 +317,13 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       continue;
     ffound : {}
       if (track_cur->FILTER.options[i].is_strv &&
-          options->type == DSOPTION_FLOAT) {
+          options->type == DFOPTION_FLOAT) {
         SEMANTIC(d, track_cur->FILTER.options[i].line,
                  track_cur->FILTER.options[i].column,
-                 "Option, '%s', requires value\n",
+                 "Option, '%s', requires integervalue\n",
                  track_cur->FILTER.options[i].option_name);
       } else if (!track_cur->FILTER.options[i].is_strv &&
-                 options->type == DSOPTION_STRING) {
+                 options->type == DFOPTION_STRING) {
         SEMANTIC(d, track_cur->FILTER.options[i].line,
                  track_cur->FILTER.options[i].column,
                  "Option, '%s', requires string\n",

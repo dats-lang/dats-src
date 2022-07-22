@@ -141,7 +141,7 @@ add_block:
     cnr->note = n;
 
     if (enable_debug) {
-      DATS_ERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+      DATS_VERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
     if (cnr_end != NULL) {
@@ -234,7 +234,7 @@ add_block:
     cnr->note = n;
 
     if (enable_debug) {
-      DATS_ERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+      DATS_VERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
     if (cnr_end != NULL) {
@@ -281,7 +281,7 @@ add_block:
     blk->nb_samples += cnr->length;
 
     if (enable_debug) {
-      DATS_ERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+      DATS_VERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
     if (cnr_end != NULL) {
@@ -327,7 +327,7 @@ add_block:
     blk->nb_samples += cnr->length;
 
     if (enable_debug) {
-      DATS_ERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
+      DATS_VERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
     if (cnr_end != NULL) {

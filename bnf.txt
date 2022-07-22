@@ -8,14 +8,14 @@ EBNF for Dats v2
 <staff> := "staff" <identifier> "{" <nr> "}" ;
 <master := "master" <identifier> "{" <stmt> "}" ;
 <stmt> := <assignment> ";" <stmt> | <IO> ";" <stmt> | ;
-<assignment> := "pcm16" <identifier> "=" <pcm16> ;
-<pcm16> :=
-    "synth" "." <synth_name> "(" <identifier> ")" ( "[" <options> "]" )? ("," <pcm16>)?
-  | "filter" "." <filter_name> "("  <pcm16> ")" ( "[" <options> "]" )? ("," <pcm16>)?
-  | "mix" "(" "(" <pcm16> ")" "," "(" <pcm16> ")" ")" ("," <pcm16>)?
-  | <identifier> ("," <pcm16>)?
+<assignment> := "track" <identifier> "=" <track> ;
+<track> :=
+    "synth" "." <synth_name> "(" <identifier> ")" ( "[" <options> "]" )? ("," <track>)?
+  | "filter" "." <filter_name> "("  <track> ")" ( "[" <options> "]" )? ("," <track>)?
+  | "mix" "(" "(" <track> ")" "," "(" <track> ")" ")" ("," <track>)?
+  | <identifier> ("," <track>)?
   | ;
-<IO> := "write" "(" <string> "," <pcm16> ")" ;
+<IO> := "write" "(" <string> "," <track> ")" ;
 <string> := "\"" (.+) "\"" ;
 <identifier> := [^0-9]+[A-Za-z0-9_]+ ;
 

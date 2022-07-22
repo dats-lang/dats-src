@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dats.h"
 #include "env.h"
+#include "log.h"
 
 #ifdef _WIN32
 #include "windows.h"
@@ -62,22 +62,31 @@ int gen_track(dats_t *dats, track_t *ctx) {
     return 1;
   switch (ctx->type) {
   case SYNTH: {
+#ifdef _WIN32
+    HINSTANCE handle;
+#else
+    void *handle;
+#endif
     if (ctx->SYNTH.where_synth == 0) {
       synth_ctx = get_dsynth_by_name(ctx->SYNTH.synth_name);
     } else if (ctx->SYNTH.where_synth == 1) {
       char loadable_synth[126] = "s_";
-      strncat(loadable_synth, ctx->SYNTH.synth_name, 126);
-      strncat(loadable_synth, ".so", 126);
+      strncat(loadable_synth, ctx->SYNTH.synth_name, 125);
+#ifdef _WIN32
+      strncat(loadable_synth, ".dll", 125);
+#else
+      strncat(loadable_synth, ".so", 125);
+#endif
       char path_synth[256] = {0};
       locate_synth(path_synth, loadable_synth, 255);
 
       char symbol_synth[126] = "ss_";
       strncat(symbol_synth, ctx->SYNTH.synth_name, 125);
 #ifdef _WIN32
-      HINSTANCE handle = LoadLibrary(path_synth);
+      handle = LoadLibrary(path_synth);
       synth_ctx = GetProcAddress(handle, symbol_synth);
 #else
-      void *handle = dlopen(path_synth, RTLD_NOW);
+      handle = dlopen(path_synth, RTLD_NOW);
       synth_ctx = dlsym(handle, symbol_synth);
 #endif
     }
@@ -106,27 +115,48 @@ int gen_track(dats_t *dats, track_t *ctx) {
     int (*const synth_func)(const symrec_t *const, track_t *const) =
         synth_ctx->synth;
     if (synth_func(getsym(dats, ctx->SYNTH.staff_name), ctx)) {
-      printf("ERROR -->\n");
+      DATS_VERROR("ERROR\n");
       return 1;
     }
+
+    if (ctx->SYNTH.where_synth == 1) {
+#ifdef _WIN32
+      if (!FreeLibrary(handle)) {
+        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n", GetLastError());
+      }
+#else
+      if (dlclose(handle)){
+        DATS_VERROR("Error while closing library: %s\n", dlerror());
+      }
+#endif
+    }
   } break;
-  case FILTER:
+  case FILTER: {
+#ifdef _WIN32
+    HINSTANCE handle;
+#else
+    void *handle;
+#endif
     if (ctx->FILTER.where_filter == 0) {
       filter_ctx = get_dfilter_by_name(ctx->FILTER.filter_name);
     } else if (ctx->FILTER.where_filter == 1) {
       char loadable_filter[126] = "f_";
-      strncat(loadable_filter, ctx->FILTER.filter_name, 126);
-      strncat(loadable_filter, ".so", 126);
+      strncat(loadable_filter, ctx->FILTER.filter_name, 125);
+#ifdef _WIN32
+      strncat(loadable_filter, ".dll", 125);
+#else
+      strncat(loadable_filter, ".so", 125);
+#endif
       char path_filter[256] = {0};
       locate_filter(path_filter, loadable_filter, 255);
 
       char symbol_filter[126] = "ff_";
       strncat(symbol_filter, ctx->FILTER.filter_name, 125);
 #ifdef _WIN32
-      HINSTANCE handle = LoadLibrary(path_filter);
+      handle = LoadLibrary(path_filter);
       filter_ctx = GetProcAddress(handle, symbol_filter);
 #else
-      void *handle = dlopen(path_filter, RTLD_NOW);
+      handle = dlopen(path_filter, RTLD_NOW);
       filter_ctx = dlsym(handle, symbol_filter);
 #endif
     }
@@ -145,9 +175,23 @@ int gen_track(dats_t *dats, track_t *ctx) {
         break;
       }
     }
-    if (filter_func(ctx, ctx->FILTER.track_arg))
+    if (filter_func(ctx, ctx->FILTER.track_arg)){
+      DATS_VERROR("ERROR\n");
       return 1;
-    break;
+    }
+
+    if (ctx->FILTER.where_filter == 1) {
+#ifdef _WIN32
+      if (!FreeLibrary(handle)) {
+        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n", GetLastError());
+      }
+#else
+      if (dlclose(handle)){
+        DATS_VERROR("Error while closing library: %s\n", dlerror());
+      }
+#endif
+    }
+  } break;
   case ID: {
     track_t *src = getsym(dats, ctx->ID.id)->value.track.track;
     switch (src->track_type) {
@@ -244,7 +288,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
         case 0:
           /* Is src also mono? */
           if (src->track_type == 1)
-            DATS_LOG("warning, mixing mono track with stereo track\n");
+            DATS_VERROR("warning, mixing mono track with stereo track\n");
           memmix16(ctx->mono.pcm + seek, src->mono.pcm, src->gain,
                    src->mono.nb_samples);
           seek += src->mono.play_end;
@@ -254,7 +298,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
         case 1:
           /* Is src also stereo? */
           if (src->track_type == 0)
-            DATS_LOG("warning, mixing stereo track with mono track\n");
+            DATS_VERROR("warning, mixing stereo track with mono track\n");
           memmix16(ctx->stereo.lpcm + lseek, src->stereo.lpcm, src->gain,
                    src->stereo.lnb_samples);
           lseek += src->stereo.lplay_end;

@@ -19,7 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dats.h"
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -136,20 +135,7 @@ void clean_all_symrec_t_all_dats_t() {
       switch (p->type) {
       case TOK_STAFF: {
         free(p->value.staff.identifier);
-        clean_bnr(p->value.staff.bnr); /*
-          bnr_t *tmp;
-          for (bnr_t *nr = p->value.staff.bnr; nr != NULL; bnr = tmp) {
-            tmp = nr->next;
-            if (nr->type == SYM_NOTE && nr != NULL) {
-              note_t *nntmp;
-              for (note_t *ntmp = nr->note; ntmp != NULL;) {
-                nntmp = ntmp->next;
-                free(ntmp);
-                ntmp = nntmp;
-              }
-            }
-            free(nr);
-          }*/
+        clean_bnr(p->value.staff.bnr);
       } break;
       case TOK_TRACK:
         free(p->value.track.identifier);
