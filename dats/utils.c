@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 extern char **synth_paths;
+extern int synth_paths_nb;
+
+extern char **filter_paths;
+extern int filter_paths_nb;
 
 void print_all_nr_t(nr_t *nr) {
   for (nr_t *p = nr; p != NULL; p = p->next) {
@@ -27,10 +31,26 @@ char *basename(const char *name) {
 #endif
 }
 
-void synth_lookup_path(char *dest, const char *name, size_t n) {
-  char path[256] = {0};
-  for (int i = 0; synth_paths[i] != NULL; i++) {
+void locate_synth(char *dest, const char *name, size_t n) {
+  for (int i = 0; i < synth_paths_nb; i++) {
+    char path[256] = {0};
     strncat(path, synth_paths[i], 255);
+    strncat(path, "/", 255);
+    strncat(path, name, 255);
+    FILE *fp = fopen(path, "rb");
+    if (fp != NULL) {
+      strncpy(dest, path, n);
+      return;
+    }
+  }
+
+  memset(dest, 0, n);
+}
+
+void locate_filter(char *dest, const char *name, size_t n) {
+  for (int i = 0; i < filter_paths_nb; i++) {
+    char path[256] = {0};
+    strncat(path, filter_paths[i], 255);
     strncat(path, "/", 255);
     strncat(path, name, 255);
     FILE *fp = fopen(path, "rb");

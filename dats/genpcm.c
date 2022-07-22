@@ -37,7 +37,8 @@
 
 extern symrec_t *getsym(dats_t *, char *);
 extern void memmix16(int16_t *, int16_t *, float, uint32_t);
-extern void synth_lookup_path(char *, const char *, size_t);
+extern void locate_synth(char *, const char *, size_t);
+extern void locate_filter(char *, const char *, size_t);
 
 int gen_track(dats_t *dats, track_t *ctx) {
   switch (ctx->track_type) {
@@ -68,7 +69,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
       strncat(loadable_synth, ctx->SYNTH.synth_name, 126);
       strncat(loadable_synth, ".so", 126);
       char path_synth[256] = {0};
-      synth_lookup_path(path_synth, loadable_synth, 255);
+      locate_synth(path_synth, loadable_synth, 255);
 
       char symbol_synth[126] = "ss_";
       strncat(symbol_synth, ctx->SYNTH.synth_name, 125);
@@ -110,7 +111,26 @@ int gen_track(dats_t *dats, track_t *ctx) {
     }
   } break;
   case FILTER:
-    filter_ctx = get_dfilter_by_name(ctx->FILTER.filter_name);
+    if (ctx->FILTER.where_filter == 0) {
+      filter_ctx = get_dfilter_by_name(ctx->FILTER.filter_name);
+    } else if (ctx->FILTER.where_filter == 1) {
+      char loadable_filter[126] = "f_";
+      strncat(loadable_filter, ctx->FILTER.filter_name, 126);
+      strncat(loadable_filter, ".so", 126);
+      char path_filter[256] = {0};
+      locate_filter(path_filter, loadable_filter, 255);
+
+      char symbol_filter[126] = "ff_";
+      strncat(symbol_filter, ctx->FILTER.filter_name, 125);
+#ifdef _WIN32
+      HINSTANCE handle = LoadLibrary(path_filter);
+      filter_ctx = GetProcAddress(handle, symbol_filter);
+#else
+      void *handle = dlopen(path_filter, RTLD_NOW);
+      filter_ctx = dlsym(handle, symbol_filter);
+#endif
+    }
+
     int (*const filter_func)(track_t * dst, track_t * src) = filter_ctx->filter;
     for (track_t *track_arg = ctx->FILTER.track_arg; track_arg != NULL;
          track_arg = track_arg->next) {

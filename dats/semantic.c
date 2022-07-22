@@ -25,6 +25,7 @@
 #ifdef _WIN32
 #include "windows.h"
 #else
+#warning "Assuming you have libdl"
 #include "dlfcn.h"
 #endif
 
@@ -35,7 +36,8 @@
 #include "libdsynth/allsynth.h"
 
 void print_track_t(track_t *const track);
-extern void synth_lookup_path(char *, const char *, size_t);
+extern void locate_synth(char *, const char *, size_t);
+extern void locate_filter(char *, const char *, size_t);
 
 static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
   for (symrec_t *sym1 = sym; sym1 != NULL; sym1 = sym1->next) {
@@ -109,10 +111,10 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       strncat(loadable_synth, ".so", 126);
 
       char path_synth[256] = {0};
-      synth_lookup_path(path_synth, loadable_synth, 255);
+      locate_synth(path_synth, loadable_synth, 255);
       if (*path_synth == 0) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
-                 "Couldn't locate, %s\n", loadable_synth);
+                 "Couldn't locate, '%s'\n", loadable_synth);
         err = 1;
         goto skip_resolving_synth;
       }
@@ -179,7 +181,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       for (options = driver->options; options->option_name != NULL; options++) {
         if (!strcmp(options->option_name,
                     track_cur->SYNTH.options[i].option_name)) {
-          goto found;
+          goto sfound;
         }
       }
       SEMANTIC(d, track_cur->SYNTH.options[i].line,
@@ -187,7 +189,7 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
                "No synth options named, '%s'\n",
                track_cur->SYNTH.options[i].option_name);
       continue;
-    found : {}
+    sfound : {}
       if (track_cur->SYNTH.options[i].is_strv &&
           options->type == DSOPTION_FLOAT) {
         SEMANTIC(d, track_cur->SYNTH.options[i].line,
@@ -210,14 +212,106 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
   }
     goto exit;
   case FILTER: {
-    const DFFilter *driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
-    if (driver == NULL) {
-      SEMANTIC(d, track_cur->FILTER.filter_line,
-               track_cur->FILTER.filter_column, "No filter named, '%s'\n",
-               track_cur->FILTER.filter_name);
+    DFFilter *driver;
+    if (track_cur->FILTER.where_filter == 1) {
+
+      char loadable_filter[126] = "f_";
+      strncat(loadable_filter, track_cur->FILTER.filter_name, 126);
+      strncat(loadable_filter, ".so", 126);
+
+      char path_filter[256] = {0};
+      locate_filter(path_filter, loadable_filter, 255);
+      if (*path_filter == 0) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "Couldn't locate, '%s'\n", loadable_filter);
+        err = 1;
+        goto skip_resolving_filter;
+      }
+
+      char symbol_filter[126] = "ff_";
+      strncat(symbol_filter, track_cur->FILTER.filter_name, 125);
+
+#ifdef _WIN32
+      HINSTANCE handle = LoadLibrary(path_filter);
+      if (handle == NULL) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "%s: couldn't load, '%s'. Error code %d\n",
+                 track_cur->FILTER.filter_name, loadable_filter, GetLastError());
+        err = 1;
+        goto skip_resolving_filter;
+      }
+      driver = (DFFilter *)GetProcAddress(handle, symbol_filter);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "%s: couldn't load, '%s'. Error code %d\n",
+                 track_cur->FILTER.filter_name, loadable_filter, GetLastError());
+        err = 1;
+      }
+#else
+      void *handle = dlopen(path_filter, RTLD_NOW);
+      if (handle == NULL) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "%s: %s\n", track_cur->FILTER.filter_name, dlerror());
+        err = 1;
+        goto skip_resolving_filter;
+      }
+      driver = dlsym(handle, symbol_filter);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "%s: %s\n", track_cur->FILTER.filter_name, dlerror());
+        err = 1;
+      }
+#endif
+    } else if (track_cur->FILTER.where_filter == 0) {
+      driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
+      if (driver == NULL) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "No filter named, '%s'\n", track_cur->FILTER.filter_name);
+        err = 1;
+      }
     }
+
+  skip_resolving_filter : {}
+//    const DFFilter *driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
+//    if (driver == NULL) {
+//      SEMANTIC(d, track_cur->FILTER.filter_line,
+//               track_cur->FILTER.filter_column, "No filter named, '%s'\n",
+//               track_cur->FILTER.filter_name);
+//      err = 1;
+//    }
     for (track_t *pc = track_cur->FILTER.track_arg; pc != NULL; pc = pc->next)
       semantic_track_t(d, sym, pc);
+    if (err)
+      goto exit;
+    for (size_t i = 0; i < track_cur->FILTER.nb_options; i++) {
+      DFOption *options = NULL;
+      for (options = driver->options; options->option_name != NULL; options++) {
+        if (!strcmp(options->option_name,
+                    track_cur->FILTER.options[i].option_name)) {
+          goto ffound;
+        }
+      }
+      SEMANTIC(d, track_cur->FILTER.options[i].line,
+               track_cur->FILTER.options[i].column,
+               "No filter options named, '%s'\n",
+               track_cur->FILTER.options[i].option_name);
+      continue;
+    ffound : {}
+      if (track_cur->FILTER.options[i].is_strv &&
+          options->type == DSOPTION_FLOAT) {
+        SEMANTIC(d, track_cur->FILTER.options[i].line,
+                 track_cur->FILTER.options[i].column,
+                 "Option, '%s', requires value\n",
+                 track_cur->FILTER.options[i].option_name);
+      } else if (!track_cur->FILTER.options[i].is_strv &&
+                 options->type == DSOPTION_STRING) {
+        SEMANTIC(d, track_cur->FILTER.options[i].line,
+                 track_cur->FILTER.options[i].column,
+                 "Option, '%s', requires string\n",
+                 track_cur->FILTER.options[i].option_name);
+      }
+    }
+
     // track_cur = track_cur->FILTER.track_arg;
   }
     goto exit;

@@ -976,20 +976,49 @@ append:
       return NULL;
     }
     tok = read_next_tok(d);
-    if (tok != TOK_IDENTIFIER) {
+    switch (tok) {
+    case TOK_DQUOTE:
+      track_tail->FILTER.where_filter = 1;
+      expecting = TOK_STRING;
+      tok = read_next_tok(d);
+      track_tail->FILTER.filter_name = tok_identifier;
+      track_tail->FILTER.filter_line = line_token_found;
+      track_tail->FILTER.filter_column = column_token_found;
+      expecting = TOK_NULL;
+
+      tok = read_next_tok(d);
+      if (tok != TOK_DQUOTE) {
+        CUSTOM_ERROR(d, "Must be terminated with, '\"'");
+        destroy_track(track_head);
+        return NULL;
+      }
+      break;
+    case TOK_IDENTIFIER:
+      track_tail->FILTER.where_filter = 0;
+      track_tail->FILTER.filter_name = tok_identifier;
+      track_tail->FILTER.filter_line = line_token_found;
+      track_tail->FILTER.filter_column = column_token_found;
+      break;
+    default:
       UNEXPECTED(tok, d);
       destroy_track(track_head);
       return NULL;
     }
+    tok_identifier = NULL;
+//    if (tok != TOK_IDENTIFIER) {
+//      UNEXPECTED(tok, d);
+//      destroy_track(track_head);
+//      return NULL;
+//    }
     track_tail->type = FILTER;
     track_tail->track_type = track_type;
-    track_tail->FILTER.filter_line = line_token_found;
-    track_tail->FILTER.filter_column = column_token_found;
-    track_tail->FILTER.filter_name = tok_identifier;
+//    track_tail->FILTER.filter_line = line_token_found;
+//    track_tail->FILTER.filter_column = column_token_found;
+//    track_tail->FILTER.filter_name = tok_identifier;
     track_tail->FILTER.track_arg = NULL;
     track_tail->FILTER.options = NULL;
     track_tail->FILTER.nb_options = 0;
-    tok_identifier = NULL;
+//    tok_identifier = NULL;
 
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
@@ -1064,6 +1093,8 @@ append:
             realloc(track_tail->FILTER.options, option_size * nb_options);
         assert(track_tail->FILTER.options != NULL);
         track_tail->FILTER.options[nb_options - 1].option_name = tok_identifier;
+        track_tail->FILTER.options[nb_options - 1].line = (int)line_token_found;
+        track_tail->FILTER.options[nb_options - 1].column = (int)column_token_found;
         tok_identifier = NULL;
         tok = read_next_tok(d);
         if (tok != TOK_EQUAL) {

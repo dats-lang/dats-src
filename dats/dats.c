@@ -42,22 +42,34 @@ extern int exec_write(dats_t *);
 char **synth_paths = NULL;
 int synth_paths_nb = 0;
 
+char **filter_paths = NULL;
+int filter_paths_nb = 0;
+
 int enable_debug = 0;
 /* process_args returns the value 0 if sucesss and nonzero if
  * failed.
  */
 
 static void init_paths(void) {
-  synth_paths = malloc(sizeof(char *) * 2);
+  /* init synth paths */
+  synth_paths = malloc(sizeof(char *));
   assert(synth_paths != NULL);
 
-  synth_paths[0] = calloc(1, 3);
+  synth_paths[0] = calloc(1, 2);
   assert(synth_paths[0] != NULL);
   strcat(synth_paths[0], ".");
 
-  synth_paths[1] = NULL;
+  synth_paths_nb = 1;
 
-  synth_paths_nb = 2;
+  /* init filter paths */
+  filter_paths = malloc(sizeof(char *));
+  assert(filter_paths != NULL);
+
+  filter_paths[0] = calloc(1, 2);
+  assert(filter_paths[0] != NULL);
+  strcat(filter_paths[0], ".");
+
+  filter_paths_nb = 1;
 }
 
 static int process_args(const int argc, char *const *argv) {
@@ -104,12 +116,21 @@ static int process_args(const int argc, char *const *argv) {
         continue;
       }
       if (argv[i][1] == 'S') {
-        synth_paths = realloc(synth_paths, synth_paths_nb + 1);
+        synth_paths = realloc(synth_paths, sizeof(char *)*(synth_paths_nb + 1));
         assert(synth_paths != NULL);
         size_t len = strlen(&argv[i][2]);
         synth_paths[synth_paths_nb] = malloc(len + 1);
         strcpy(synth_paths[synth_paths_nb], &argv[i][2]);
         synth_paths_nb++;
+        continue;
+      }
+      if (argv[i][1] == 'F') {
+        filter_paths = realloc(filter_paths, sizeof(char *)*(filter_paths_nb + 1));
+        assert(filter_paths != NULL);
+        size_t len = strlen(&argv[i][2]);
+        filter_paths[filter_paths_nb] = malloc(len + 1);
+        strcpy(filter_paths[filter_paths_nb], &argv[i][2]);
+        filter_paths_nb++;
         continue;
       }
 
