@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -O2 -ggdb3 -Wall -Wextra -fPIC 
 
-include ../config.txt
+include ../Makedefs
 
 ifeq ($(ENABLE_DEBUG), yes)
 	CFLAGS += -ggdb3

@@ -85,7 +85,7 @@ struct synth_option_t {
   };
 };
 
-enum track_type_t { ID, MIX, FILTER, SYNTH };
+enum track_type_t { ID, MIX, FILTER, SYNTH, READ };
 typedef enum track_type_t track_type_t;
 
 typedef struct track_t track_t;
@@ -97,6 +97,10 @@ struct track_t {
       char *id;
       uint32_t line, column;
     } ID;
+    struct {
+      char *file;
+      uint32_t line, column;
+    } READ;
     struct {
       uint32_t nb_track;
       track_t **track; // an array
@@ -165,7 +169,6 @@ struct symrec_t {
       bnr_t *bnr;
       uint32_t nb_samples; // with the repeat
     } staff; /* staff variables */
-
     struct {
       char *out_file;
       track_t *track;
@@ -176,7 +179,9 @@ struct symrec_t {
        char *identifier;
        float val;
      } env;*/			/* environment variables */
-
+    struct {
+      symrec_t *sym;
+    } main;
     struct {
       char *identifier;
       uint32_t nb_samples;

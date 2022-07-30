@@ -84,6 +84,9 @@ void destroy_track(track_t *track) {
       }
       free(a->SYNTH.options);
       break;
+    case READ:
+      free(a->READ.file);
+      break;
     }
     switch (a->track_type) {
     case 0:
@@ -1168,9 +1171,7 @@ const char *token_t_to_str(const token_t t) {
   case TOK_READ:
     return "read";
   case TOK_MIX:
-    return "mix"; /*
-    case TOK_REPEAT:
-      return "repeat";*/
+    return "mix";
   case TOK_EOF:
     return "end of file";
   default:

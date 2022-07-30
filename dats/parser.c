@@ -34,6 +34,7 @@ extern int enable_debug;
 
 static token_t tok;
 static symrec_t *staff;
+static symrec_t *main;
 static int rule_match = 0;
 static dats_t *d;
 
@@ -1329,7 +1330,7 @@ static int parse_stmt() {
   return 0;
 }
 
-static int parse_master() {
+static int parse_main() {
 
   tok = read_next_tok(d);
   if (tok != TOK_LCURLY_BRACE) {
@@ -1363,7 +1364,7 @@ static int start() {
     return local_errors;
   case TOK_MAIN:
     do {
-      if (parse_master())
+      if (parse_main())
         return 1;
     } while (tok == TOK_MAIN);
     return local_errors;

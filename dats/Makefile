@@ -15,7 +15,7 @@ OBJ += mixer.o
 LDFLAGS = -L../libdsynth -ldsynth -L../libdfilter \
 	-ldfilter -lm
 
-include ../config.txt
+include ../Makedefs
 
 ifeq ($(ENABLE_DEBUG), yes)
 	CFLAGS += -ggdb3 -O0
