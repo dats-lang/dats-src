@@ -180,7 +180,7 @@ struct symrec_t {
        float val;
      } env;*/			/* environment variables */
     struct {
-      symrec_t *sym;
+      symrec_t *stmt;
     } main;
     struct {
       char *identifier;

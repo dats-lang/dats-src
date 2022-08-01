@@ -33,8 +33,8 @@ extern void print_all_nr_t(nr_t *nr);
 extern int enable_debug;
 
 static token_t tok;
-static symrec_t *staff;
-static symrec_t *main;
+//static symrec_t *staff;
+static symrec_t **main_stmt;
 static int rule_match = 0;
 static dats_t *d;
 
@@ -46,8 +46,8 @@ static dats_t *d;
 static int parse_notes_rests(bnr_t *blk) {
   int nb_blk = 0;
   bnr_t *prev_blk[MAX_BLOCK] = {0};
-  nr_t *prev_cnr_end[MAX_BLOCK] = {0};
-  nr_t *cnr_end = NULL;
+  nr_t **prev_cnr_end[MAX_BLOCK] = {0};
+  nr_t **cnr_end = &blk->nr;
 
 add_block:
   rule_match = 0;
@@ -145,13 +145,10 @@ add_block:
       DATS_VERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
+
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -238,13 +235,11 @@ add_block:
       DATS_VERROR("NOTE at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
+
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -285,13 +280,11 @@ add_block:
       DATS_VERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
+
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -331,13 +324,11 @@ add_block:
       DATS_VERROR("REST at %p; %p %p \n", (void *)blk, (void *)cnr_end,
                  (void *)cnr);
     }
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
+
     rule_match = 1;
 
     if (tok != TOK_SEMICOLON) {
@@ -542,19 +533,15 @@ add_block:
     cnr->id = NULL;
     cnr->next = NULL;
 
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
 
     prev_blk[nb_blk] = blk;
     prev_cnr_end[nb_blk] = cnr_end;
     nb_blk++;
     block->block_id = nb_blk;
-    cnr_end = NULL;
+    cnr_end = &block->nr;;
     blk = block;
     tok = read_next_tok(d);
     goto add_block;
@@ -567,7 +554,7 @@ add_block:
     cnr_end = prev_cnr_end[nb_blk];
 
     prev_blk[nb_blk] = NULL;
-    prev_cnr_end[nb_blk] = 0;
+    prev_cnr_end[nb_blk] = NULL;
     rule_match = 1;
 
   } else if (tok == TOK_IDENTIFIER) {
@@ -592,13 +579,10 @@ add_block:
     }
     tok_identifier = NULL;
 
-    if (cnr_end != NULL) {
-      cnr_end->next = cnr;
-      cnr_end = cnr;
-    } else {
-      blk->nr = cnr;
-      cnr_end = cnr;
-    }
+    *cnr_end = cnr;
+    cnr_end = &cnr->next;
+    *cnr_end = NULL;
+
     rule_match = 1;
 
     tok = read_next_tok(d);
@@ -635,8 +619,8 @@ static int parse_staff() {
     EXPECTING(TOK_IDENTIFIER, d);
     return 1;
   }
-  /* insert symrec_t */
-  staff = malloc(sizeof(symrec_t));
+  /* append symrec_t */
+  symrec_t *staff = malloc(sizeof(symrec_t));
   assert(staff != NULL);
   staff->type = TOK_STAFF;
   staff->line = line_token_found;
@@ -645,8 +629,11 @@ static int parse_staff() {
   tok_identifier = NULL;
   staff->value.staff.nb_samples = 0;
   staff->value.staff.bnr = NULL;
-  staff->next = d->sym_table;
-  d->sym_table = staff;
+  staff->next = NULL;
+
+  *main_stmt = staff;
+  main_stmt = &staff->next;
+  *main_stmt = NULL;
 
   bnr_t *block = malloc(sizeof(bnr_t));
   assert(block != NULL);
@@ -1191,8 +1178,11 @@ static symrec_t *parse_track(char *id, token_t track_type) {
   track->value.track.nb_samples = 0;
   track->value.track.identifier = id;
   track->value.track.track = NULL;
-  track->next = d->sym_table;
-  d->sym_table = track;
+  track->next = NULL;
+
+  *main_stmt = track;
+  main_stmt = &track->next;
+  *main_stmt = NULL;
 
   track_t *track_head = malloc(sizeof(track_t));
   assert(track_head != NULL);
@@ -1215,6 +1205,7 @@ static symrec_t *parse_track(char *id, token_t track_type) {
   if (parse_track_tail(track_head, track_head) == NULL)
     return NULL;
   track->value.track.track = track_head;
+  *main_stmt = NULL;
   return track;
 }
 
@@ -1227,6 +1218,8 @@ static int parse_stmt() {
 
   /* statements */
   if (tok == TOK_TRACK) {
+    if (enable_debug)
+      DATS_VERROR("TRACK type %s\n", token_t_to_str(track_type));
     tok = read_next_tok(d);
     if (tok != TOK_IDENTIFIER) {
       UNEXPECTED(tok, d);
@@ -1234,7 +1227,6 @@ static int parse_stmt() {
     }
     size_t line = line_token_found, column = column_token_found;
     char *id = tok_identifier;
-    symrec_t *track = NULL;
 
     tok = read_next_tok(d);
     if (tok != TOK_EQUAL) {
@@ -1248,11 +1240,14 @@ static int parse_stmt() {
 
     line_token_found = line;
     column_token_found = column;
-    track = parse_track(id, track_type);
+    symrec_t *track = parse_track(id, track_type);
     if (track == NULL)
       return 1;
     rule_match = 1;
   } else if (tok == TOK_WRITE) {
+    if (enable_debug)
+      DATS_VERROR("WRITE\n");
+
     tok = read_next_tok(d);
     if (tok != TOK_LPAREN) {
       EXPECTING(TOK_LPAREN, d);
@@ -1281,8 +1276,11 @@ static int parse_stmt() {
     write->value.write.out_file = tok_identifier;
     tok_identifier = NULL;
     write->value.write.track = NULL;
-    write->next = d->sym_table;
-    d->sym_table = write;
+    write->next = NULL;
+
+    *main_stmt = write;
+    main_stmt = &write->next;
+    *main_stmt = NULL;
 
     track_t *track_head = malloc(sizeof(track_t));
     assert(track_head != NULL);
@@ -1331,6 +1329,15 @@ static int parse_stmt() {
 }
 
 static int parse_main() {
+  if (enable_debug)
+    DATS_VERROR("MAIN parsing\n");
+  symrec_t *main = malloc(sizeof(symrec_t));
+  assert(main != NULL);
+  main->type = TOK_MAIN;
+  main->next = NULL;
+
+  *main_stmt = main;
+  main_stmt = &main->value.main.stmt;
 
   tok = read_next_tok(d);
   if (tok != TOK_LCURLY_BRACE) {
@@ -1344,11 +1351,16 @@ static int parse_main() {
     if (parse_stmt())
       return 1;
   } while (rule_match);
+  *main_stmt = NULL;
 
   if (tok != TOK_RCURLY_BRACE) {
     UNEXPECTED(tok, d);
     return 1;
   }
+
+  main_stmt = &main->next;
+  if (enable_debug)
+    DATS_VERROR("MAIN done parsing\n");
 
   return 0;
 }
@@ -1379,9 +1391,11 @@ static int start() {
 }
 
 /* Returns 0 if success. Non-zero if failed. */
-int parse_cur_dats_t(dats_t *const t) {
+int parse_dats_t(dats_t *const t) {
   local_errors = 0;
   d = t;
+  main_stmt = &d->sym_table;
+  *main_stmt = NULL;
 
   while (1) {
     tok = read_next_tok(d);
@@ -1396,6 +1410,7 @@ int parse_cur_dats_t(dats_t *const t) {
     if (tok == TOK_EOF)
       break;
   }
+  *main_stmt = NULL;
 
   return local_errors;
 }

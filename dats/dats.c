@@ -35,9 +35,9 @@
 #include "version.h"
 
 /* Parses dats_t */
-extern int parse_cur_dats_t(dats_t *const t);
-extern int semantic_cur_dats_t(dats_t const *const);
-extern int exec_write(dats_t *);
+extern int parse_dats_t(dats_t *const t);
+extern int semantic_dats_t(dats_t const *const);
+extern int execute_dats_t(dats_t *);
 
 char **synth_paths = NULL;
 int synth_paths_nb = 0;
@@ -190,11 +190,12 @@ int main(int argc, char **argv) {
     /* if parse current dats_t returns non zero, then it
      * must be skipped
      */
-    if (parse_cur_dats_t(p))
+    if (parse_dats_t(p))
       continue;
-    if (semantic_cur_dats_t(p))
+    if (semantic_dats_t(p))
       continue;
-    exec_write(p);
+    execute_dats_t(p);
+
     print_all_symrec_t_cur_dats_t(p);
   }
   if (global_errors)

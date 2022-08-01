@@ -130,29 +130,37 @@ void clean_bnr(bnr_t *bnr) {
   free(bnr);
 }
 
+void clean_all_symrec_t(symrec_t *s){
+  symrec_t *n;
+  for (symrec_t *p = s; p != NULL; p = n) {
+    n = p->next;
+    switch (p->type) {
+    case TOK_STAFF: {
+      free(p->value.staff.identifier);
+      clean_bnr(p->value.staff.bnr);
+    } break;
+    case TOK_TRACK:
+      free(p->value.track.identifier);
+      destroy_track(p->value.track.track);
+      break;
+    case TOK_WRITE:
+      free(p->value.write.out_file);
+      destroy_track(p->value.write.track);
+      break;
+    case TOK_MAIN:
+      clean_all_symrec_t(p->value.main.stmt);
+      break;
+    default:
+      DATS_ERROR("UNKNOWN TYPE %d\n", p->type);
+    }
+    free(p);
+  }
+
+}
+
 void clean_all_symrec_t_all_dats_t() {
   for (dats_t *d = dats_files; d != NULL; d = d->next) {
-    symrec_t *n;
-    for (symrec_t *p = d->sym_table; p != NULL; p = n) {
-      n = p->next;
-      switch (p->type) {
-      case TOK_STAFF: {
-        free(p->value.staff.identifier);
-        clean_bnr(p->value.staff.bnr);
-      } break;
-      case TOK_TRACK:
-        free(p->value.track.identifier);
-        destroy_track(p->value.track.track);
-        break;
-      case TOK_WRITE:
-        free(p->value.write.out_file);
-        destroy_track(p->value.write.track);
-        break;
-      default:
-        DATS_ERROR("UNKNOWN TYPE %d\n", p->type);
-      }
-      free(p);
-    }
+    clean_all_symrec_t(d->sym_table);
   }
 }
 
@@ -163,18 +171,31 @@ int count_dats_t(void) {
   return ret;
 }
 
-symrec_t *getsym(const dats_t *const t, char const *const id) {
-  symrec_t *n;
-  for (symrec_t *p = t->sym_table; p != NULL; p = n) {
-    n = p->next;
-    if (p->value.staff.identifier == NULL)
+static symrec_t *_getsym(symrec_t *const t, char const *const id) {
+  for (symrec_t *p = t; p != NULL; p = p->next) {
+    switch (p->type){
+    case TOK_STAFF:
+      if (!strcmp(p->value.staff.identifier, id))
+        return p;
       continue;
-    if (!strcmp(p->value.staff.identifier, id))
-      return p;
-    /*else if (!strcmp(p->value.env.identifier, id))
-      return p;*/
+    case TOK_TRACK:
+      if (!strcmp(p->value.track.identifier, id))
+        return p;
+      continue;
+    case TOK_MAIN:{
+      symrec_t *sym = _getsym(p->value.main.stmt, id);
+      if (sym != NULL)
+        return sym;
+     }
+      continue;
+    }
   }
+
   return NULL;
+}
+
+symrec_t *getsym(const dats_t *const t, char const *const id) {
+  return _getsym(t->sym_table, id);
 }
 
 void print_debugging_info(const token_t tok, dats_t *d) {
@@ -1181,13 +1202,9 @@ const char *token_t_to_str(const token_t t) {
   }
 }
 
-/* prints the symbol table of the current dats_t* t*/
-void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
-  printf("Symbol table of %s\n%-20s    %-20s\n\n", t->fname, "  IDENTIFIER",
-         "  TYPE");
-  symrec_t *n;
-  for (symrec_t *p = t->sym_table; p != NULL; p = n) {
-    n = p->next;
+
+static void _print_all_symrec_t(symrec_t *const t) {
+  for (symrec_t *p = t; p != NULL; p = p->next) {
     switch (p->type) {
     case TOK_STAFF:
       printf("  %-20s    %-20s\n", p->value.staff.identifier,
@@ -1203,8 +1220,19 @@ void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
     case TOK_WRITE:
       printf("  [write]\n");
       break;
+    case TOK_MAIN:
+      _print_all_symrec_t(p->value.main.stmt);
+      break;
     default:
-      REPORT("Unknown token\n");
+      DATS_VERROR("Unknown token\n");
     }
   }
+
+}
+
+/* prints the symbol table of the current dats_t* t*/
+void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
+  printf("Symbol table of %s\n%-20s    %-20s\n\n", t->fname, "  IDENTIFIER",
+         "  TYPE");
+  _print_all_symrec_t(t->sym_table);
 }

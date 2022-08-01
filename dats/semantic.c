@@ -30,6 +30,7 @@
 #endif
 
 #include "env.h"
+#include "log.h"
 #include "scanner.h"
 
 #include "libdfilter/allfilter.h"
@@ -38,6 +39,7 @@
 void print_track_t(track_t *const track);
 extern void locate_synth(char *, const char *, size_t);
 extern void locate_filter(char *, const char *, size_t);
+extern int enable_debug;
 
 static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
   for (symrec_t *sym1 = sym; sym1 != NULL; sym1 = sym1->next) {
@@ -49,6 +51,9 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
     case TOK_STAFF:
       id1 = sym1->value.staff.identifier;
       break;
+    case TOK_MAIN:
+      duplicates_symrec_t(d, sym1->value.main.stmt);
+      continue;
     default:
       continue;
     }
@@ -65,16 +70,16 @@ static int duplicates_symrec_t(dats_t *d, symrec_t *sym) {
         continue;
       }
       if (!strcmp(id1, id2)) {
-        SEMANTIC(d, sym1->line, sym1->column, "Redefinition of '%s'\n", id1);
+        SEMANTIC(d, sym2->line, sym2->column, "Redefinition of '%s'\n", id2);
         REPORT("note: previously declared here:\n");
-        print_scan_line(d->fp, sym2->line, sym2->column);
+        print_scan_line(d->fp, sym1->line, sym1->column);
       }
     }
   }
   return 0;
 }
 
-int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
+static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
   int err = 0;
   if (track_cur == NULL)
     return 0;
@@ -338,15 +343,20 @@ int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
     for (uint32_t nb_args = 0; nb_args < track_cur->MIX.nb_track; nb_args++)
       semantic_track_t(d, sym, track_cur->MIX.track[nb_args]);
     goto exit;
+  case READ:
+    DATS_VERROR("READ CURRENTLY NOT IMPLEMENTED\n");
+    err = 1;
+    goto exit;
   }
 exit:
   return local_errors; // semantic_track_t(d, n, c->next);
 }
 
-int semantic_cur_dats_t(dats_t *d) {
+int semantic_dats_t(dats_t *d) {
   int err = 0;
   local_errors = 0;
   duplicates_symrec_t(d, d->sym_table);
+
   for (symrec_t *n = d->sym_table; n != NULL; n = n->next) {
     switch (n->type) {
     case TOK_TRACK:
@@ -357,6 +367,7 @@ int semantic_cur_dats_t(dats_t *d) {
     case TOK_WRITE:
       (void)semantic_track_t(d, n, n->value.write.track);
       break;
+    case TOK_MAIN:
     default:
       break;
     }
