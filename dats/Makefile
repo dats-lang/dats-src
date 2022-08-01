@@ -9,7 +9,7 @@ OBJ += semantic.o
 OBJ += utils.o
 OBJ += dquote.o
 OBJ += genpcm.o
-OBJ += write.o
+OBJ += execute.o
 OBJ += mixer.o
 
 LDFLAGS = -L../libdsynth -ldsynth -L../libdfilter \

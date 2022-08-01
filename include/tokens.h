@@ -8,7 +8,7 @@ enum token_t {
   /* Data types */
   TOK_STAFF,
   // TOK_TRACK,
-  TOK_ATRACK,
+  // TOK_ATRACK,
   TOK_SYNTH,
   TOK_FILTER,
   TOK_MAIN,
