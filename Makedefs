@@ -1,9 +1,12 @@
-# libdsynth
-
-# libdfilter
+CC = gcc
+CFLAGS = -Wall -Wextra -I.. -I../include
 
 ENABLE_DEBUG = no
 ENABLE_ASAN = no
+
+# libdsynth
+
+# libdfilter
 
 # OPENMP is experimental and unintended
 # crashes may happen

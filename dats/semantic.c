@@ -145,8 +145,10 @@ static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
                  "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
                  track_cur->SYNTH.synth_name, loadable_synth, GetLastError());
+        err = 1;
+        goto skip_resolving_synth;
       }
-      
+
 #else
       void *handle = dlopen(path_synth, RTLD_NOW);
       if (handle == NULL) {
@@ -160,15 +162,27 @@ static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
         SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
                  "%s: %s\n", track_cur->SYNTH.synth_name, dlerror());
         err = 1;
+        goto skip_resolving_synth;
       }
 #endif
 
+      if (driver->api_version.major != DSYNTH_API_VERSION_MAJOR) {
+        SEMANTIC(d, track_cur->SYNTH.synth_line, track_cur->SYNTH.synth_column,
+                 "%s: unsupported synth API version major %d. Dats "
+                 "currently support synth API version major %d\n",
+                 loadable_synth, driver->api_version.major,
+                 DSYNTH_API_VERSION_MAJOR);
+        err = 1;
+        goto skip_resolving_synth;
+      }
+
 #ifdef _WIN32
       if (!FreeLibrary(handle)) {
-        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n", GetLastError());
+        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n",
+                    GetLastError());
       }
 #else
-      if (dlclose(handle)){
+      if (dlclose(handle)) {
         DATS_VERROR("Error while closing library: %s\n", dlerror());
       }
 #endif
@@ -246,8 +260,9 @@ static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
       char path_filter[256] = {0};
       locate_filter(path_filter, loadable_filter, 255);
       if (*path_filter == 0) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "Couldn't locate, '%s'\n", loadable_filter);
+        SEMANTIC(d, track_cur->FILTER.filter_line,
+                 track_cur->FILTER.filter_column, "Couldn't locate, '%s'\n",
+                 loadable_filter);
         err = 1;
         goto skip_resolving_filter;
       }
@@ -258,51 +273,73 @@ static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
 #ifdef _WIN32
       HINSTANCE handle = LoadLibrary(path_filter);
       if (handle == NULL) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
-                 track_cur->FILTER.filter_name, loadable_filter, GetLastError());
+        SEMANTIC(
+            d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+            "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
+            track_cur->FILTER.filter_name, loadable_filter, GetLastError());
         err = 1;
         goto skip_resolving_filter;
       }
       driver = (DFFilter *)GetProcAddress(handle, symbol_filter);
       if (driver == NULL) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
-                 track_cur->FILTER.filter_name, loadable_filter, GetLastError());
+        SEMANTIC(
+            d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+            "%s: couldn't load, '%s'. Error code %" PRIu32 "\n",
+            track_cur->FILTER.filter_name, loadable_filter, GetLastError());
         err = 1;
+        goto skip_resolving_filter;
       }
 #else
       void *handle = dlopen(path_filter, RTLD_NOW);
       if (handle == NULL) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: %s\n", track_cur->FILTER.filter_name, dlerror());
+        SEMANTIC(d, track_cur->FILTER.filter_line,
+                 track_cur->FILTER.filter_column, "%s: %s\n",
+                 track_cur->FILTER.filter_name, dlerror());
         err = 1;
         goto skip_resolving_filter;
       }
       driver = dlsym(handle, symbol_filter);
       if (driver == NULL) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "%s: %s\n", track_cur->FILTER.filter_name, dlerror());
+        SEMANTIC(d, track_cur->FILTER.filter_line,
+                 track_cur->FILTER.filter_column, "%s: %s\n",
+                 track_cur->FILTER.filter_name, dlerror());
         err = 1;
+        goto skip_resolving_filter;
+      }
+#endif
+
+      if (driver->api_version.major != DFILTER_API_VERSION_MAJOR) {
+        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
+                 "%s: unsupported filter API version major %d. Dats "
+                 "currently support filter API version major %d\n",
+                 loadable_filter, driver->api_version.major,
+                 DFILTER_API_VERSION_MAJOR);
+        err = 1;
+        goto skip_resolving_filter;
+      }
+
+#ifdef _WIN32
+      if (!FreeLibrary(handle)) {
+        DATS_VERROR("Error while freeing library: code %" PRIu32 "\n",
+                    GetLastError());
+      }
+#else
+      if (dlclose(handle)) {
+        DATS_VERROR("Error while closing library: %s\n", dlerror());
       }
 #endif
     } else if (track_cur->FILTER.where_filter == 0) {
       driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
       if (driver == NULL) {
-        SEMANTIC(d, track_cur->FILTER.filter_line, track_cur->FILTER.filter_column,
-                 "No filter named, '%s'\n", track_cur->FILTER.filter_name);
+        SEMANTIC(d, track_cur->FILTER.filter_line,
+                 track_cur->FILTER.filter_column, "No filter named, '%s'\n",
+                 track_cur->FILTER.filter_name);
         err = 1;
+        goto skip_resolving_filter;
       }
     }
 
   skip_resolving_filter : {}
-//    const DFFilter *driver = get_dfilter_by_name(track_cur->FILTER.filter_name);
-//    if (driver == NULL) {
-//      SEMANTIC(d, track_cur->FILTER.filter_line,
-//               track_cur->FILTER.filter_column, "No filter named, '%s'\n",
-//               track_cur->FILTER.filter_name);
-//      err = 1;
-//    }
     for (track_t *pc = track_cur->FILTER.track_arg; pc != NULL; pc = pc->next)
       semantic_track_t(d, sym, pc);
     if (err)
@@ -325,7 +362,7 @@ static int semantic_track_t(dats_t *d, symrec_t *sym, track_t *track_cur) {
           options->type == DFOPTION_FLOAT) {
         SEMANTIC(d, track_cur->FILTER.options[i].line,
                  track_cur->FILTER.options[i].column,
-                 "Option, '%s', requires integervalue\n",
+                 "Option, '%s', requires integer value\n",
                  track_cur->FILTER.options[i].option_name);
       } else if (!track_cur->FILTER.options[i].is_strv &&
                  options->type == DFOPTION_STRING) {

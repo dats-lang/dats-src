@@ -3,6 +3,22 @@
 #include "env.h"
 #include <stdint.h>
 
+/* increment MAJOR if changes were made to the DSYNTH struct
+ * and its members and set MINOR to 0 (zero). Like for example,
+ * changes that would increase or decreases the size of DSYNTH
+ * struct.
+ **/
+#define DSYNTH_API_VERSION_MAJOR 0
+
+/* increment MINOR if changes were made to the API functions, but
+ * not DSYNTH struct nor its members itself.
+**/
+#define DSYNTH_API_VERSION_MINOR 0
+
+#define DSYNTH_SET_API_VERSION                                                \
+  .api_version.major = DSYNTH_API_VERSION_MAJOR,                              \
+  .api_version.minor = DSYNTH_API_VERSION_MINOR
+
 enum DSOptionType { DSOPTION_FLOAT, DSOPTION_STRING };
 typedef enum DSOptionType DSOptionType;
 
@@ -19,6 +35,12 @@ struct DSOption {
 
 typedef struct DSSynth DSSynth;
 struct DSSynth {
+  /* API version */
+  struct {
+    uint32_t major;
+    uint32_t minor;
+  } api_version;
+
   /* Synth name */
   const char *name;
 

@@ -1,11 +1,13 @@
 CC = gcc
-CFLAGS = -O2 -ggdb3 -Wall -Wextra -fPIC 
+CFLAGS = -Wall -Wextra -fPIC 
 
 include ../Makedefs
 
 ifeq ($(ENABLE_DEBUG), yes)
-	CFLAGS += -ggdb3
+	CFLAGS += -ggdb3 -O0 
 	LDFLAGS += -fsanitize=address
+else
+	CFLAGS += -O2
 endif
 
 ifeq ($(ENABLE_OPENMP), yes)

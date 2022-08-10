@@ -108,6 +108,7 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
 
 /* clang-format off */
 DSSynth ss_kpa = {
+  DSYNTH_SET_API_VERSION,
   .name = "kpa",
   .description = "A Karplus-Strong synthesizer",
   .options = options,

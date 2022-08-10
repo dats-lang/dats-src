@@ -35,9 +35,10 @@
 #include "version.h"
 
 /* Parses dats_t */
-extern int parse_dats_t(dats_t *const t);
-extern int semantic_dats_t(dats_t const *const);
-extern int execute_dats_t(dats_t *);
+extern int parse_dats_t(dats_t *const t); /* parser.c */
+extern int semantic_dats_t(dats_t const *const); /* semantic.c */
+extern int execute_dats_t(dats_t *); /* execute.c */
+extern void print_dats_t(const dats_t *const); /* utils.c */
 
 char **synth_paths = NULL;
 int synth_paths_nb = 0;
@@ -86,14 +87,14 @@ static int process_args(const int argc, char *const *argv) {
           /* clang-format off */
           printf("Dats interpreter Draft-2.0.0 ");
           putchar('(');
-      {   int i = 0;
+      {   uint_t i = 0;
           while (i!=____git_refs_heads_master_len-1)
           putchar(____git_refs_heads_master[i++]);
 #ifdef DUMMY_COMMIT
           printf("-dummy");
 #endif
       }   putchar(':');
-      {   int i = 0;
+      {   uint_t i = 0;
           while (i!=____git_HEAD_len-1)
           putchar((____git_HEAD+5)[i++]);
       }
@@ -196,7 +197,7 @@ int main(int argc, char **argv) {
       continue;
     execute_dats_t(p);
 
-    print_all_symrec_t_cur_dats_t(p);
+    print_dats_t(p);
   }
   if (global_errors)
     goto err;

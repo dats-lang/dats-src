@@ -102,6 +102,7 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
 
 /* clang-format off */
 DSSynth ss_square = {
+  DSYNTH_SET_API_VERSION,
   .name = "square",
   .description = "A square wave synth",
   .options = options,

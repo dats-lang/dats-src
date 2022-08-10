@@ -139,6 +139,7 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
 
 /* clang-format off */
 DSSynth ss_sin = {
+  DSYNTH_SET_API_VERSION,
   .name = "sin",
   .description = "A sine wave synth",
   .options = options,

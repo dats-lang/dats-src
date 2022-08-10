@@ -26,8 +26,6 @@ Execute dats file as `dats file.dats`
 
 Note: This software is unstable, and more changes will have to come. 
 
-PRs are warmly welcomed. Make sure you `clang-format -i *.[ch]` your source before doing so.
-
 # Building
 
 Building Dats requires fluidsynth, and with it, should compile on Windows and \*nix operating
@@ -41,7 +39,13 @@ make -j4 && make install && make test
 
 # Documentation
 
-Tutorial is found at doc directory.
+See https://github.com/dats-lang/dats-tex
+
+# Contributing
+
+PRs are warmly welcomed. Make sure you `clang-format -i *.[ch]` your sources
+before doing so. You can begin by grepping "FIXME" through sources and read what
+needs to be done. `find . -name \*.c -exec grep -n FIXME {} \+`.
 
 ### TODO
 

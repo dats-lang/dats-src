@@ -1,6 +1,10 @@
 #include "env.h"
+#include "log.h"
 #include <stdio.h>
 #include <string.h>
+
+extern const char *token_t_to_str(const token_t t);
+
 extern char **synth_paths;
 extern int synth_paths_nb;
 
@@ -98,4 +102,38 @@ void print_track_t(track_t *const track) {
       }
     }
   }
+}
+
+static void _print_symrec_t(symrec_t *const t) {
+  for (symrec_t *p = t; p != NULL; p = p->next) {
+    switch (p->type) {
+    case TOK_STAFF:
+      printf("  %-20s    %-20s\n", p->value.staff.identifier,
+             token_t_to_str(TOK_STAFF));
+      break;
+    case TOK_TRACK:
+      printf("  %-20s    %-20s %s\n",
+             p->value.track.identifier == NULL ? "(null)"
+                                               : p->value.track.identifier,
+             token_t_to_str(TOK_TRACK),
+             (!p->value.track.track->track_type) ? "mono" : "stereo");
+      break;
+    case TOK_WRITE:
+      printf("  [write]\n");
+      break;
+    case TOK_MAIN:
+      _print_symrec_t(p->value.main.stmt);
+      break;
+    default:
+      DATS_VERROR("Unknown token\n");
+    }
+  }
+
+}
+
+/* prints the symbol table of the current dats_t* t*/
+void print_dats_t(const dats_t *const t) {
+  printf("Symbol table of %s\n%-20s    %-20s\n\n", t->fname, "  IDENTIFIER",
+         "  TYPE");
+  _print_symrec_t(t->sym_table);
 }

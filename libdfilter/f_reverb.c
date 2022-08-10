@@ -166,6 +166,7 @@ static int filter(track_t *pcm_ctx, track_t *const pcm_src) {
 
 /* clang-format off */
 DFFilter f_reverb = {
+  DFILTER_SET_API_VERSION,
   .name = "reverb",
   .description = "A reverb filter",
   .options = options,

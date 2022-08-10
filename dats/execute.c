@@ -73,6 +73,7 @@ int execute_dats_t(dats_t *dats) {
 
       switch (n->value.write.track->track_type) {
       case 0: {
+        /* FIXME handle when apended tracks is mono or stereo */
         uint32_t seek_pcm = 0;
         for (track_t *track = n->value.write.track; track != NULL;
              track = track->next) {
@@ -83,6 +84,7 @@ int execute_dats_t(dats_t *dats) {
         }
       } break;
       case 1: {
+        /* FIXME handle when apended tracks is mono or stereo */
         uint32_t lseek_pcm = 0, rseek_pcm = 0;
         for (track_t *track = n->value.write.track; track != NULL;
              track = track->next) {

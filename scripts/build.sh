@@ -33,7 +33,7 @@ popd
 
 # COMPILES DATS
 pushd dats
-OBJ=(dats parser scanner wav semantic utils dquote genpcm write mixer)
+OBJ=(dats parser scanner wav semantic utils dquote genpcm execute mixer)
 for i in ${!OBJ[@]}; do
 	$CC -c ${OBJ[$i]}.c $CFLAGS -o ${OBJ[$i]}.o
 done;

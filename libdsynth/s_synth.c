@@ -74,6 +74,7 @@ static track_t *synth(const symrec_t *staff) {
 
 /* clang-format off */
 DSSynth ss_synth = {
+  DSYNTH_SET_API_VERSION,
   .name = "synth",
   .description = "A multi-purpose synthesizer",
   .options = options,

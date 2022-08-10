@@ -983,7 +983,7 @@ w:
           i++;
         if (buff[i] == (char)'.') { // if theres a period, count it.
           i++;
-          if (isdigit(buff[i])) {
+          if (isdigit(buff[i])) { /* if the rest is digit then its a float */
             while (isdigit(buff[++i]))
               ;
             if (i != nchar)
@@ -995,7 +995,7 @@ w:
                         buff[a], buff[a]);*/
                 d->column--;
               }
-          } else {
+          } else { /* else unget the period */
             ungetc('.', d->fp);
             seek--;
             d->column--;
@@ -1200,39 +1200,4 @@ const char *token_t_to_str(const token_t t) {
     printf("%d\n", t);
     return __FILE__;
   }
-}
-
-
-static void _print_all_symrec_t(symrec_t *const t) {
-  for (symrec_t *p = t; p != NULL; p = p->next) {
-    switch (p->type) {
-    case TOK_STAFF:
-      printf("  %-20s    %-20s\n", p->value.staff.identifier,
-             token_t_to_str(TOK_STAFF));
-      break;
-    case TOK_TRACK:
-      printf("  %-20s    %-20s %s\n",
-             p->value.track.identifier == NULL ? "(null)"
-                                               : p->value.track.identifier,
-             token_t_to_str(TOK_TRACK),
-             (!p->value.track.track->track_type) ? "mono" : "stereo");
-      break;
-    case TOK_WRITE:
-      printf("  [write]\n");
-      break;
-    case TOK_MAIN:
-      _print_all_symrec_t(p->value.main.stmt);
-      break;
-    default:
-      DATS_VERROR("Unknown token\n");
-    }
-  }
-
-}
-
-/* prints the symbol table of the current dats_t* t*/
-void print_all_symrec_t_cur_dats_t(const dats_t *const t) {
-  printf("Symbol table of %s\n%-20s    %-20s\n\n", t->fname, "  IDENTIFIER",
-         "  TYPE");
-  _print_all_symrec_t(t->sym_table);
 }

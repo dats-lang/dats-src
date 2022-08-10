@@ -3,6 +3,22 @@
 #include "env.h"
 #include <stdint.h>
 
+/* increment MAJOR if changes were made to the DFILTER struct
+ * and its members and set MINOR to 0 (zero). Like for example,
+ * changes that would increase or decreases the size of DFILTER
+ * struct.
+ **/
+#define DFILTER_API_VERSION_MAJOR 0
+
+/* increment MINOR if changes were made to the API functions, but
+ * not DFILTER struct nor its members itself.
+**/
+#define DFILTER_API_VERSION_MINOR 0
+
+#define DFILTER_SET_API_VERSION                                                \
+  .api_version.major = DFILTER_API_VERSION_MAJOR,                              \
+  .api_version.minor = DFILTER_API_VERSION_MINOR
+
 enum DFOptionType { DFOPTION_FLOAT, DFOPTION_STRING, DFOPTION_INT };
 typedef enum DFOptionType DFOptionType;
 
@@ -20,6 +36,12 @@ struct DFOption {
 
 typedef struct DFFilter DFFilter;
 struct DFFilter {
+  /* API version */
+  struct {
+    uint32_t major;
+    uint32_t minor;
+  } api_version;
+
   /* Filter name */
   const char *name;
 

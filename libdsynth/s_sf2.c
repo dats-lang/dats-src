@@ -213,8 +213,9 @@ static int synth(const symrec_t *const staff, track_t *const pcm_ctx) {
 }
 
 DSSynth ss_sf2 = {
-    .name = "sf2",
-    .description = "A sf2 synth",
-    .options = options,
-    .synth = &synth,
+  DSYNTH_SET_API_VERSION,
+  .name = "sf2",
+  .description = "A sf2 synth",
+  .options = options,
+  .synth = &synth,
 };
