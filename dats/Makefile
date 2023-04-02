@@ -1,5 +1,4 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -I.. -I../include
+include ../Makedefs
 
 OBJ = dats.o
 OBJ += parser.o 
@@ -12,10 +11,8 @@ OBJ += genpcm.o
 OBJ += execute.o
 OBJ += mixer.o
 
-LDFLAGS = -L../libdsynth -ldsynth -L../libdfilter \
+LDFLAGS += -L../libdsynth -ldsynth -L../libdfilter \
 	-ldfilter -lm
-
-include ../Makedefs
 
 ifeq ($(ENABLE_DEBUG), yes)
 	CFLAGS += -ggdb3 -O0

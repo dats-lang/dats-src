@@ -23,14 +23,57 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void memmix16(int16_t *dst, int16_t *src, float gain, uint32_t nb_samples) {
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#endif
+
+void memmixf(float *dst, float *src, float gain, uint32_t nb_samples) {
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+  uint32_t remaining = (nb_samples % 8);
+  uint32_t n = 0, trunc = nb_samples - remaining;
+  for (; n < truncs; n+=8) {
+    // dst[n] += (int16_t)((float)src[n] * pow(gain, 2.0f));
+    int16x8_t av = vld1q_s16(a+n);
+    int16x8_t bv = vld1q_s16(a+n);
+  
+    int16x8_t targetv = vmlaq_s16(av, bv);
+  
+    /* Store the result */
+    vst1q_s16(dst + n, targetv);
+  }
+#else
   for (uint32_t n = 0; n < nb_samples; n++) {
     // dst[n] += (int16_t)((float)src[n] * pow(gain, 2.0f));
     dst[n] += (int16_t)((float)src[n] * pow(M_E, (gain - 1.0) * 4.0f));
   }
+#endif
 }
 
-int16_t mix16(int16_t a, int16_t b, float gain) {
+void memmixs16(int16_t *dst, int16_t *src, float gain, uint32_t nb_samples) {
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+  uint32_t remaining = (nb_samples % 8);
+  uint32_t n = 0, trunc = nb_samples - remaining;
+  for (; n < truncs; n+=8) {
+    // dst[n] += (int16_t)((float)src[n] * pow(gain, 2.0f));
+    int16x8_t av = vld1q_s16(a+n);
+    int16x8_t bv = vld1q_s16(a+n);
+  
+    int16x8_t targetv = vmlaq_s16(av, bv);
+  
+    /* Store the result */
+    vst1q_s16(dst + n, targetv);
+  }
+#else
+  for (uint32_t n = 0; n < nb_samples; n++) {
+    // dst[n] += (int16_t)((float)src[n] * pow(gain, 2.0f));
+    dst[n] += (int16_t)((float)src[n] * pow(M_E, (gain - 1.0) * 4.0f));
+  }
+#endif
+}
+
+int16_t mixs16(int16_t a, int16_t b, float gain) {
   /* This might be slow */
   return a + (int16_t)((float)b * pow(M_E, (gain - 1.0) * 4.0f));
 }

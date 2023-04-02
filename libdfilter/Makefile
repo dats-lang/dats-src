@@ -1,7 +1,8 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -O3 -fPIC  -I.. -I../include
-LDFLAGS = -lm -L../sndfilter -lsndfilter
 include ../Makedefs
+
+LDFLAGS += -lm -L../sndfilter -lsndfilter
+
+CFLAGS += -fPIC
 
 ifeq ($(ENABLE_DEBUG), yes)
 	CFLAGS += -ggdb3 -O0

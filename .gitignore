@@ -12,6 +12,9 @@
 # Sound files
 test/*.wav
 dats/*.wav
+*.wav
+*.mp3
+*.raw
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -48,3 +51,5 @@ version.h
 # Parser tests
 ptest
 
+# Misc
+libdafx

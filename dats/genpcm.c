@@ -36,7 +36,7 @@
 #include <string.h>
 
 extern symrec_t *getsym(dats_t *, char *);
-extern void memmix16(int16_t *, int16_t *, float, uint32_t);
+extern void memmixs16(int16_t *, int16_t *, float, uint32_t);
 extern void locate_synth(char *, const char *, size_t);
 extern void locate_filter(char *, const char *, size_t);
 
@@ -225,7 +225,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
       }
       ctx->mono.pcm = malloc(src_nb_samples * sizeof(int16_t));
       assert(ctx->mono.pcm != NULL);
-      memmix16(ctx->mono.pcm, src_pcm, src->gain, src_nb_samples);
+      memmixs16(ctx->mono.pcm, src_pcm, src->gain, src_nb_samples);
       ctx->mono.nb_samples = src_nb_samples;
       ctx->mono.play_end = src_play_end;
     } break; /* case 0 */
@@ -253,13 +253,13 @@ int gen_track(dats_t *dats, track_t *ctx) {
 
       ctx->stereo.lpcm = calloc(src_lnb_samples, sizeof(int16_t));
       assert(ctx->stereo.lpcm != NULL);
-      memmix16(ctx->stereo.lpcm, src_lpcm, src->gain, src_lnb_samples);
+      memmixs16(ctx->stereo.lpcm, src_lpcm, src->gain, src_lnb_samples);
       ctx->stereo.lnb_samples = src_lnb_samples;
       ctx->stereo.lplay_end = src_lplay_end;
 
       ctx->stereo.rpcm = calloc(src_rnb_samples, sizeof(int16_t));
       assert(ctx->stereo.rpcm != NULL);
-      memmix16(ctx->stereo.rpcm, src_rpcm, src->gain, src_rnb_samples);
+      memmixs16(ctx->stereo.rpcm, src_rpcm, src->gain, src_rnb_samples);
       ctx->stereo.rnb_samples = src_rnb_samples;
       ctx->stereo.rplay_end = src_rplay_end;
     } break; /* case 1 */
@@ -334,7 +334,7 @@ int gen_track(dats_t *dats, track_t *ctx) {
             src_nb_samples = src->stereo.lnb_samples;
             src_play_end = src->stereo.lplay_end;
           }
-          memmix16(ctx->mono.pcm + seek, src_pcm, src->gain, src_nb_samples);
+          memmixs16(ctx->mono.pcm + seek, src_pcm, src->gain, src_nb_samples);
           seek += src_play_end;
           if (i == ctx->MIX.nb_track - 1 && src->next == NULL)
             ctx->mono.play_end = src_play_end;
@@ -360,13 +360,13 @@ int gen_track(dats_t *dats, track_t *ctx) {
             src_rplay_end = src->mono.play_end;
             src_lplay_end = src->mono.play_end;
           }
-          memmix16(ctx->stereo.lpcm + lseek, src_lpcm, src->gain,
+          memmixs16(ctx->stereo.lpcm + lseek, src_lpcm, src->gain,
                    src_lnb_samples);
           lseek += src_lplay_end;
           if (i == ctx->MIX.nb_track - 1 && src->next == NULL)
             ctx->stereo.lplay_end = src_lplay_end;
 
-          memmix16(ctx->stereo.rpcm + rseek, src_rpcm, src->gain,
+          memmixs16(ctx->stereo.rpcm + rseek, src_rpcm, src->gain,
                    src_rnb_samples);
           rseek += src_rplay_end;
           if (i == ctx->MIX.nb_track - 1 && src->next == NULL)

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 extern int gen_track(dats_t *, track_t *);
-extern int16_t mix16(int16_t, int16_t, float);
+extern int16_t mixs16(int16_t, int16_t, float);
 
 int execute_dats_t(dats_t *dats) {
   symrec_t *main = NULL;
@@ -79,7 +79,7 @@ int execute_dats_t(dats_t *dats) {
              track = track->next) {
           for (uint32_t n = 0; n < track->mono.nb_samples; n++)
             out_pcm[seek_pcm + n] =
-                mix16(out_pcm[seek_pcm + n], track->mono.pcm[n], track->gain);
+                mixs16(out_pcm[seek_pcm + n], track->mono.pcm[n], track->gain);
           seek_pcm += track->mono.play_end;
         }
       } break;
@@ -89,10 +89,10 @@ int execute_dats_t(dats_t *dats) {
         for (track_t *track = n->value.write.track; track != NULL;
              track = track->next) {
           for (uint32_t n = 0; n < track->stereo.lnb_samples; n++) {
-            out_pcm[lseek_pcm + (n * 2)] = mix16(
+            out_pcm[lseek_pcm + (n * 2)] = mixs16(
                 out_pcm[lseek_pcm + n * 2], track->stereo.lpcm[n], track->gain);
             out_pcm[rseek_pcm + (n * 2) + 1] =
-                mix16(out_pcm[rseek_pcm + n * 2 + 1], track->stereo.rpcm[n],
+                mixs16(out_pcm[rseek_pcm + n * 2 + 1], track->stereo.rpcm[n],
                       track->gain);
           }
 

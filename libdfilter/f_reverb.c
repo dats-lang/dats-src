@@ -11,6 +11,7 @@
 
 #include "filter.h"
 #include "log.h"
+#include "utils.h"
 
 /* clang-format off */
 static DFOption options[] = {
@@ -33,6 +34,7 @@ static void free_string_options(void) {
 
 static int filter(track_t *pcm_ctx, track_t *const pcm_src) {
 
+  track_type_t track_type_src = pcm_src->track_type;
   // read the data and convert to stereo floating point
   int16_t L, R;
   sf_snd snd;
