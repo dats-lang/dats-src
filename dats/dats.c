@@ -34,6 +34,7 @@
 #include "scanner.h"
 #include "version.h"
 
+typedef unsigned int uint_t;
 /* Parses dats_t */
 extern int parse_dats_t(dats_t *const t); /* parser.c */
 extern int semantic_dats_t(dats_t const *const); /* semantic.c */

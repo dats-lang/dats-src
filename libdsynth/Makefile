@@ -40,13 +40,13 @@ $(TARGET): $(OBJ)
 $(OBJ): %.o: %.c $(wildcard *.h)
 
 .PHONY: indent
-clean: libdsynth.so $(OBJ)
+clean: $(TARGET) $(OBJ)
 	rm $^
 
-install: libdsynth.so
+install: $(TARGET)
 	cp $^ $(PREFIX)/lib
 
-uninstall: libdsynth.so
+uninstall: $(TARGET)
 	rm $(PREFIX)/lib/$^
 indent:
 	clang-format -i *.[ch]

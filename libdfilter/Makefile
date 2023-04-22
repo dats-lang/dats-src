@@ -36,13 +36,13 @@ $(TARGET): $(OBJ)
 $(OBJ): %.o: %.c $(wildcard *.h)
 
 .PHONY: indent
-clean: libdfilter.so $(OBJ)
+clean: $(TARGET) $(OBJ)
 	rm $^
 
-install: libdfilter.so
+install: $(TARGET)
 	cp $^ $(PREFIX)/lib
 
-uninstall: libdfilter.so
+uninstall: $(TARGET)
 	rm $(PREFIX)/lib/$^
 indent:
 	clang-format -i *.[ch]
